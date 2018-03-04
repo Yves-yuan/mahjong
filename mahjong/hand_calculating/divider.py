@@ -8,6 +8,56 @@ from mahjong.utils import is_chi, is_pon
 
 
 class HandDivider(object):
+    def divide_hand_zigong(self, tiles_18):
+        closed_hand_tiles_18 = tiles_18[:]
+        pair_indices = self.find_pairs(closed_hand_tiles_18, 0, 17)
+        # let's try to find all possible hand options
+        hands = []
+        for pair_index in pair_indices:
+            local_tiles_18 = tiles_18[:]
+            local_tiles_18[pair_index] -= 2
+            # 0 - 8 tongzi tiles
+            tongzi = self.find_valid_combinations(local_tiles_18, 0, 8)
+            # 9 - 17 tiaozi tiles
+            tiaozi = self.find_valid_combinations(local_tiles_18, 9, 17)
+
+            arrays = [[[pair_index] * 2]]
+            if tongzi:
+                arrays.append(tongzi)
+            if tiaozi:
+                arrays.append(tiaozi)
+            # let's find all possible hand from our valid sets
+            for s in itertools.product(*arrays):
+                hand = []
+                for item in list(s):
+                    if isinstance(item[0], list):
+                        for x in item:
+                            hand.append(x)
+                    else:
+                        hand.append(item)
+
+                hand = sorted(hand, key=lambda a: a[0])
+                if len(hand) == 5:
+                    hands.append(hand)
+        # small optimization, let's remove hand duplicates
+        unique_hands = []
+        for hand in hands:
+            hand = sorted(hand, key=lambda x: (x[0], x[1]))
+            if hand not in unique_hands:
+                unique_hands.append(hand)
+
+        hands = unique_hands
+
+        num = 0
+        for indice in pair_indices:
+            num += tiles_18[indice]/2
+        if num == 7:
+            hand = []
+            for index in pair_indices:
+                hand.append([index] * tiles_18[index])
+            hands.append(hand)
+
+        return hands
 
     def divide_hand(self, tiles_34, melds=None):
         """

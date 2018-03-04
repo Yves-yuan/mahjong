@@ -5,7 +5,7 @@ from mahjong.hand_calculating.divider import HandDivider
 from mahjong.hand_calculating.fu import FuCalculator
 from mahjong.hand_calculating.scores import ScoresCalculator
 from mahjong.hand_calculating.hand_config import HandConfig
-from mahjong.hand_calculating.hand_response import HandResponse
+from mahjong.hand_calculating.hand_response import HandResponse, HandResponseZigong
 from mahjong.meld import Meld
 from mahjong.tile import TilesConverter
 from mahjong.utils import is_chi, is_pon, plus_dora, is_aka_dora
@@ -24,20 +24,16 @@ class HandCalculator(object):
         scores_calculator = ScoresCalculator()
         tiles_18 = TilesConverter.to_18_array(tiles)
         agari = Agari()
-        if not agari.is_agari(tiles_18, []):
+        if not agari.is_agari_zigong(tiles_18):
             return HandResponse(error='Hand is not winning')
 
         divider = HandDivider()
-        hand_options = divider.divide_hand(tiles_18)
-
+        hand_options = divider.divide_hand_zigong(tiles_18)
         calculated_hands = []
         for hand in hand_options:
             # win_groups = self._find_win_groups(win_tile, hand, [])
-            cost = scores_calculator.calcculate_scores_zigong(hand, win_tile)
-            calculated_hand = {
-                    'hand': hand,
-                    'cost': cost,
-                }
+            cost = scores_calculator.calculate_scores_zigong(hand, win_tile, tiles_18)
+            calculated_hand = HandResponseZigong(hand, cost)
             calculated_hands.append(calculated_hand)
         return calculated_hands
 

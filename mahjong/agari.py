@@ -6,6 +6,43 @@ from mahjong.utils import find_isolated_tile_indices
 
 class Agari(object):
 
+    def is_agari_zigong(self, tiles_18):
+        tiles = copy.deepcopy(tiles_18)
+        duizi = sum([tiles[i] == 2 for i in range(0, 18)])
+        sige = sum([tiles[i] == 4 for i in range(0, 18)])
+        if duizi + sige * 2 == 7:
+            return True
+
+        n00 = tiles[0] + tiles[3] + tiles[6]
+        n01 = tiles[1] + tiles[4] + tiles[7]
+        n02 = tiles[2] + tiles[5] + tiles[8]
+
+        n10 = tiles[9] + tiles[12] + tiles[15]
+        n11 = tiles[10] + tiles[13] + tiles[16]
+        n12 = tiles[11] + tiles[14] + tiles[17]
+
+        n0 = (n00 + n01 + n02) % 3
+        if n0 == 1:
+            return False
+
+        n1 = (n10 + n11 + n12) % 3
+        if n1 == 1:
+            return False
+
+        nn0 = (n00 * 1 + n01 * 2) % 3
+        m0 = self._to_meld(tiles, 0)
+        nn1 = (n10 * 1 + n11 * 2) % 3
+        m1 = self._to_meld(tiles, 9)
+
+        if n0 == 2:
+            return not (n1 | nn1) and self._is_mentsu(m1) \
+                   and self._is_atama_mentsu(nn0, m0)
+
+        if n1 == 2:
+            return not ( n0 | nn0) and self._is_mentsu(m0) \
+                   and self._is_atama_mentsu(nn1, m1)
+        return False
+
     def is_agari(self, tiles_34, open_sets_34=None):
         """
         Determine was it win or not
@@ -73,7 +110,7 @@ class Agari(object):
         n2 = (n20 + n21 + n22) % 3
         if n2 == 1:
             return False
-#:todo
+        #:todo
         if ((n0 == 2) + (n1 == 2) + (n2 == 2) + (tiles[27] == 2) + (tiles[28] == 2) +
                 (tiles[29] == 2) + (tiles[30] == 2) + (tiles[31] == 2) + (tiles[32] == 2) +
                 (tiles[33] == 2) != 1):

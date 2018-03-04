@@ -1,6 +1,18 @@
 # -*- coding: utf-8 -*-
 
 
+class HandResponseZigong(object):
+    cost = None
+    hand = None
+
+    def __init__(self, hand=None, cost=None):
+        self.cost = cost
+        self.hand = hand
+
+    def __str__(self):
+        return 'hand :{} , cost:{} '.format(self.hand, self.cost)
+
+
 class HandResponse(object):
     cost = None
     han = None
