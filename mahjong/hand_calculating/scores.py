@@ -4,6 +4,9 @@ from mahjong.hand_calculating.hand_config import HandConfig
 
 class ScoresCalculator(object):
 
+    def calcculate_scores_zigong(self,hand,wintile):
+        return 0
+
     def calculate_scores(self, han, fu, config, is_yakuman=False):
         """
         Calculate how much scores cost a hand with given han and fu

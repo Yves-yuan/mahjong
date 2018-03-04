@@ -21,15 +21,16 @@ def print_hand_result(hand_result):
 # Tanyao hand by ron                                               #
 ####################################################################
 
-
+test_tiles = TilesConverter.string_to_136_array(man='11112', pin='333567', sou='444')
+print("**************", test_tiles)
 # we had to use all 14 tiles in that array
 tiles = TilesConverter.string_to_136_array(man='22444', pin='333567', sou='444')
 win_tile = TilesConverter.string_to_136_array(sou='4')[0]
-
+print("**********", tiles)
+print("**********", win_tile)
 result = calculator.estimate_hand_value(tiles, win_tile)
 print_hand_result(result)
-
-
+print("what")
 ####################################################################
 # Tanyao hand by tsumo                                             #
 ####################################################################
@@ -37,7 +38,6 @@ print_hand_result(result)
 
 result = calculator.estimate_hand_value(tiles, win_tile, config=HandConfig(is_tsumo=True))
 print_hand_result(result)
-
 
 ####################################################################
 # Add open set to hand                                             #
@@ -48,7 +48,6 @@ melds = [Meld(meld_type=Meld.PON, tiles=TilesConverter.string_to_136_array(man='
 
 result = calculator.estimate_hand_value(tiles, win_tile, melds=melds, config=HandConfig(has_open_tanyao=True))
 print_hand_result(result)
-
 
 ####################################################################
 # Shanten calculation                                              #
@@ -82,7 +81,6 @@ dora_indicators = [
 config = HandConfig(is_riichi=True, kazoe=HandConfig.KAZOE_SANBAIMAN)
 result = calculator.estimate_hand_value(tiles, win_tile, melds, dora_indicators, config)
 print_hand_result(result)
-
 
 ####################################################################
 # Change the cost of yaku                                          #

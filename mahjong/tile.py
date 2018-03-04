@@ -39,6 +39,17 @@ class TilesConverter(object):
         return man + pin + sou + honors
 
     @staticmethod
+    def to_18_array(tiles):
+        """
+        Convert 72 array to the 18 tiles array
+        """
+        results = [0] * 18
+        for tile in tiles:
+            tile //= 4
+            results[tile] += 1
+        return results
+
+    @staticmethod
     def to_34_array(tiles):
         """
         Convert 136 array to the 34 tiles array

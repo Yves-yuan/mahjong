@@ -14,6 +14,33 @@ from mahjong.utils import is_chi, is_pon, plus_dora, is_aka_dora
 class HandCalculator(object):
     config = None
 
+    def estimate_hand_value_zigong(self, tiles, win_tile):
+        """
+        it's a specific version of China SiChuan Zigong majhong.
+        :param tiles:
+        :param win_tile:
+        :return:
+        """
+        scores_calculator = ScoresCalculator()
+        tiles_18 = TilesConverter.to_18_array(tiles)
+        agari = Agari()
+        if not agari.is_agari(tiles_18, []):
+            return HandResponse(error='Hand is not winning')
+
+        divider = HandDivider()
+        hand_options = divider.divide_hand(tiles_18)
+
+        calculated_hands = []
+        for hand in hand_options:
+            # win_groups = self._find_win_groups(win_tile, hand, [])
+            cost = scores_calculator.calcculate_scores_zigong(hand, win_tile)
+            calculated_hand = {
+                    'hand': hand,
+                    'cost': cost,
+                }
+            calculated_hands.append(calculated_hand)
+        return calculated_hands
+
     def estimate_hand_value(self, tiles, win_tile, melds=None, dora_indicators=None, config=None):
         """
         :param tiles: array with 14 tiles in 136-tile format

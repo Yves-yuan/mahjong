@@ -37,13 +37,13 @@ class Agari(object):
         if j >= 0x10:
             return False
 
-        # 13 orphans
+        # 13 orphans todo:
         if ((j & 3) == 2) and (tiles[0] * tiles[8] * tiles[9] * tiles[17] * tiles[18] *
                                tiles[26] * tiles[27] * tiles[28] * tiles[29] * tiles[30] *
                                tiles[31] * tiles[32] * tiles[33] == 2):
             return True
 
-        # seven pairs
+        # seven pairs todo:
         if not (j & 10) and sum([tiles[i] == 2 for i in range(0, 34)]) == 7:
             return True
 
@@ -73,7 +73,7 @@ class Agari(object):
         n2 = (n20 + n21 + n22) % 3
         if n2 == 1:
             return False
-
+#:todo
         if ((n0 == 2) + (n1 == 2) + (n2 == 2) + (tiles[27] == 2) + (tiles[28] == 2) +
                 (tiles[29] == 2) + (tiles[30] == 2) + (tiles[31] == 2) + (tiles[32] == 2) +
                 (tiles[33] == 2) != 1):
