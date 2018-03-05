@@ -18,8 +18,9 @@ class GameServer(object):
             self.tiles[4 * index + 1] = Tiles[index]
             self.tiles[4 * index + 2] = Tiles[index]
             self.tiles[4 * index + 3] = Tiles[index]
-        random.shuffle(self.tiles)
+
         print("shuffle")
+        random.shuffle(self.tiles)
         print(self)
         # deal,fa pai
         print("deal")
