@@ -1,15 +1,14 @@
 from zigong_majiang.rule.hand import HandCalculator
 
-
-
-
 from zigong_majiang.rule.tile import TilesConverter
+
 
 # useful helper
 def print_hand_result(hand_results):
     for result in hand_results:
         print(result)
         print('')
+
 
 calculator = HandCalculator()
 

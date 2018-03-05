@@ -6,16 +6,16 @@ from zigong_majiang.rule.tile import TilesConverter
 
 
 class HandCalculator(object):
-    def estimate_hand_value_zigong(self, tiles, win_tile):
+    def estimate_hand_value_zigong(self, tiles_72, win_tile):
         """
         it's a specific version of China SiChuan Zigong majhong.
-        :param tiles:
+        :param tiles_72:
         :param win_tile:
         :return:
         """
 
         scores_calculator = ScoresCalculator()
-        tiles_18 = TilesConverter.to_18_array(tiles)
+        tiles_18 = TilesConverter.to_18_array(tiles_72)
         agari = Agari()
         if not agari.is_agari_zigong(tiles_18):
             return HandResponseZigong(error='Hand is not winning')
