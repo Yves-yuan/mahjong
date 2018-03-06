@@ -1,4 +1,7 @@
+import random
+
 from zigong_majiang.rule.Agari import Agari
+from zigong_majiang.rule.Response import GameResult
 from zigong_majiang.rule.hand import HandCalculator
 from zigong_majiang.rule.tile import TilesConverter
 
@@ -17,27 +20,36 @@ def tiles_to_string(tiles):
 
 class Client(object):
     def __init__(self, client_id: int):
-        self.tiles = [int]
+        self.tiles_18 = [0] * 18
+        self.last_tile = 0
         self.calculator = HandCalculator()
         self.agari = Agari()
         self.id = client_id
 
-    def play_hand(self, index):
-        self.tiles.pop(index)
+    def play_hand(self):
+        while True:
+            r = random.randint(0, 17)
+            if self.tiles_18[r] > 0:
+                self.tiles_18[r] -= 1
+                break
+        return r
 
     def touch_tile(self, tile: int):
-        self.tiles.append(tile)
+        self.tiles_18[tile] += 1
+        self.last_tile = tile
 
     def estimate_hand_value(self, tile):
-        tongzi, tiaozi = tiles_to_string(self.tiles)
-        tiles_72 = TilesConverter.string_to_72_array(tongzi=tongzi, tiaozi=tiaozi)
-        tiles_18 = TilesConverter.to_18_array(tiles_72)
-        is_win = self.agari.is_agari_zigong(tiles_18)
+        is_win = self.agari.is_agari_zigong(self.tiles_18)
         if is_win:
-            results = self.calculator.estimate_hand_value_zigong(tiles_72, tile)
-            return results
+            results = self.calculator.estimate_hand_value_zigong(self.tiles_18, tile)
+            return GameResult(self.id, True, results)
         else:
-            return []
+            return GameResult(self.id)
+
+    def hands(self):
+        tongzi, tiaozi = TilesConverter.tiles_18_to_str(self.tiles_18)
+        r = "tongzi:{} tiaozi:{}".format(tongzi, tiaozi)
+        return r
 
     def __str__(self):
-        return 'client id :{} , hand:{} '.format(self.id, self.tiles)
+        return 'client id :{} , hand:{} '.format(self.id, self.tiles_18)

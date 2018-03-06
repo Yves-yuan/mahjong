@@ -39,3 +39,17 @@ class TilesConverter(object):
         results = _split_string(tongzi, 0)
         results += _split_string(tiaozi, 36)
         return results
+
+    @staticmethod
+    def tiles_18_to_str(tiles_18):
+        tongzi = ""
+        tiaozi = ""
+        for index in range(0, len(tiles_18)):
+            if index < 9 and tiles_18[index] > 0:
+                for i in range(0, tiles_18[index]):
+                    tongzi += str(index)
+            else:
+                for i in range(0, tiles_18[index]):
+                    tiaozi += str(index - 9)
+
+        return tongzi, tiaozi
