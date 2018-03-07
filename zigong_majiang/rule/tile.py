@@ -22,7 +22,6 @@ class Hands(object):
         for tile in self.hands:
             hands += tile.__str__()
             hands += ","
-        print(hands.__len__())
         hands = hands[:-1]
         hands += "]"
         return hands
