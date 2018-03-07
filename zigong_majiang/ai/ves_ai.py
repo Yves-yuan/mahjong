@@ -1,4 +1,4 @@
-from zigong_majiang.rule.Agari import Agari
+from zigong_majiang.rule.agari import Agari
 from zigong_majiang.rule.tile import Tile
 
 

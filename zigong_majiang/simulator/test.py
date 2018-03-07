@@ -1,5 +1,5 @@
-from zigong_majiang.simulator.Client import Client
-from zigong_majiang.simulator.GameServer import GameServer
+from zigong_majiang.simulator.client import Client
+from zigong_majiang.simulator.game_server import GameServer
 
 server = GameServer()
 client1 = Client(1)

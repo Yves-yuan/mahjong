@@ -1,9 +1,9 @@
 import random
 
-from zigong_majiang.rule.Agari import Agari
-from zigong_majiang.rule.Response import GameResult
-from zigong_majiang.rule.hand import HandCalculator
+from zigong_majiang.rule.agari import Agari
+from zigong_majiang.rule.hand_calculator import HandCalculator
 from zigong_majiang.rule.tile_convert import TilesConverter
+from zigong_majiang.simulator.game_result import GameResult
 
 
 def tiles_to_string(tiles):

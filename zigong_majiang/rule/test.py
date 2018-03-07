@@ -1,4 +1,4 @@
-from zigong_majiang.rule.hand import HandCalculator
+from zigong_majiang.rule.hand_calculator import HandCalculator
 
 from zigong_majiang.rule.tile_convert import TilesConverter
 

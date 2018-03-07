@@ -1,5 +1,5 @@
-from zigong_majiang.rule.Agari import Agari
-from zigong_majiang.rule.Response import HandResponseZigong
+from zigong_majiang.rule.agari import Agari
+from zigong_majiang.rule.hand_response import HandResponseZigong
 from zigong_majiang.rule.HandDriver import HandDivider
 from zigong_majiang.rule.scores import ScoresCalculator
 from zigong_majiang.rule.tile_convert import TilesConverter
