@@ -3,7 +3,7 @@ import random
 from zigong_majiang.rule.Agari import Agari
 from zigong_majiang.rule.Response import GameResult
 from zigong_majiang.rule.hand import HandCalculator
-from zigong_majiang.rule.tile import TilesConverter
+from zigong_majiang.rule.tile_convert import TilesConverter
 
 
 def tiles_to_string(tiles):

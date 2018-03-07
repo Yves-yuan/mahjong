@@ -2,7 +2,7 @@ from zigong_majiang.rule.Agari import Agari
 from zigong_majiang.rule.Response import HandResponseZigong
 from zigong_majiang.rule.HandDriver import HandDivider
 from zigong_majiang.rule.scores import ScoresCalculator
-from zigong_majiang.rule.tile import TilesConverter
+from zigong_majiang.rule.tile_convert import TilesConverter
 
 
 class HandCalculator(object):
