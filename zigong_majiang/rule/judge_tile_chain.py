@@ -11,7 +11,7 @@ class JudgeTileChain(object):
         for tpp in self.touchPlayPairs:
             ret += tpp.__str__()
 
-        ret += " 胡牌:"
+        ret += "胡牌:"
         for tile in self.drawHands:
             ret += Tile(tile).__str__()
 

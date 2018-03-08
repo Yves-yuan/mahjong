@@ -7,4 +7,4 @@ class TouchPlayPair(object):
         self.play_card = Tile(play_card)
 
     def __str__(self):
-        return "摸牌:{},打牌:{}".format(self.touch_card.__str__(), self.play_card.__str__())
+        return "摸牌:{},打牌:{} ".format(self.touch_card.__str__(), self.play_card.__str__())
