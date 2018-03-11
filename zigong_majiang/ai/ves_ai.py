@@ -24,6 +24,8 @@ class VesAI(object):
 
     def calc_effective_cards(self, tiles_18, n):
         judge_tile_chains = self.calc_effective_cards_internal(tiles_18, n)
+        for chain in judge_tile_chains:
+            print(chain)
         # for chain in judge_tile_chains:
         #     print(chain)
 
