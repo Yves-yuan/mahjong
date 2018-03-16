@@ -1,4 +1,6 @@
 from itertools import permutations
+import pymysql
+import sys
 
 from zigong_majiang.ai.perm_comb import PermCombGenerator
 from zigong_majiang.ai.ves_ai import VesAI
@@ -30,9 +32,32 @@ Tiles = [0, 0, 0, 0,
 # for hand in hands:
 #     print(hand)
 
-comb_gen = PermCombGenerator(Tiles, 2, end_point=5, start_comb=[2, 11])
+db = pymysql.connect(host='127.0.0.1', user='root',
+                     password='yuan1fei', db='mahjong', port=3306, charset='utf8')
+cursor = db.cursor()
+raw_sql = """INSERT INTO comb_chain(hands_comb,
+         search_chain)
+         VALUES ('{0}', '')
+         ON DUPLICATE KEY UPDATE search_chain = ''"""
+ves = VesAI(2)
+comb_gen = PermCombGenerator(Tiles, 13, end_point=2)
 comb = comb_gen.next()
 while comb is not None:
-    print(comb)
     comb = comb_gen.next()
+    comb_str = ""
+    for tile in comb:
+        comb_str += tile.__str__() + ","
+    comb_str = comb_str[:-1]
+    s = raw_sql.format(comb_str)
+    try:
+        # 执行sql语句
+        cursor.execute(s)
+
+        # 提交到数据库执行
+        db.commit()
+    except Exception:
+        # 如果发生错误则回滚
+        db.rollback()
+        print("wrong")
+        print(sys.exc_info()[0], sys.exc_info()[1])
 # ves.calc_effective_cards(tiles_18, 1)

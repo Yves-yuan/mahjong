@@ -40,7 +40,6 @@ class PermCombGenerator(object):
         return self.result
 
     def next_internal(self):
-        print("example:", self.example, "pointer", self.pointer)
         if self.example[self.pointer] < self.m - 1:
             self.example[self.pointer] += 1
         else:

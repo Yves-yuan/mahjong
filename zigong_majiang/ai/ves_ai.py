@@ -23,6 +23,8 @@ class VesAI(object):
         return draw_hands
 
     def calc_effective_cards(self, tiles_18, n):
+        if len(tiles_18) != 13:
+            print("hands must be a 13 length array")
         judge_tile_chains = self.calc_effective_cards_internal(tiles_18, n)
         for chain in judge_tile_chains:
             print(chain)
