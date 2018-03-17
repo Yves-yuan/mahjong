@@ -10,10 +10,6 @@ def print_hand_result(hand_results):
         print('')
 
 
-calculator = HandCalculator()
-
-test_tiles = TilesConverter.string_to_72_array(tongzi='111123', tiaozi='55667788')
-tiles_18 = TilesConverter.array_72_to_18(test_tiles)
-print(test_tiles)
-results = calculator.estimate_hand_value_zigong(tiles_18, 5)
+tiles_18 = TilesConverter.string_to_18_array(tongzi='111123', tiaozi='55667788')
+results = HandCalculator.estimate_hand_value_zigong(tiles_18, 5)
 print_hand_result(results)

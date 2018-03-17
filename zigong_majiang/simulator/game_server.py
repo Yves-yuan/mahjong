@@ -1,3 +1,4 @@
+import copy
 import random
 
 from zigong_majiang.simulator.client import Client
@@ -12,17 +13,22 @@ class GameServer(object):
         self.size = size
         self.tiles = [0] * 72
         self.clients = [] * size
+        self.index = First
 
-    def start_game(self):
+    def init(self):
+        for index in range(0, len(self.clients)):
+            self.clients[index].set_opponent(self.clients[(index + 1) % 3])
+
         for index in range(len(Tiles)):
             self.tiles[4 * index] = Tiles[index]
             self.tiles[4 * index + 1] = Tiles[index]
             self.tiles[4 * index + 2] = Tiles[index]
             self.tiles[4 * index + 3] = Tiles[index]
 
-        print("shuffle")
-        random.shuffle(self.tiles)
-        print(self)
+    def start_game(self):
+        # 初始化
+        self.init()
+
         # deal,fa pai
         print("deal")
         self.deal()
@@ -35,25 +41,26 @@ class GameServer(object):
         print("")
         print("Playing start")
         # Choose first one to play-card
-        index = First
         while True:
             if len(self.tiles) == 0:
                 print("Drawn game")
                 break
             tile = self.tiles.pop(0)
-            self.clients[index].touch_tile(tile)
-            result = self.clients[index].estimate_hand_value(tile)
+            self.clients[self.index].touch_tile(tile)
+            result = self.clients[self.index].estimate_hand_value(tile)
             if not result.is_win:
-                card = self.clients[index].play_hand()
-                print("Player:{} play card:{} hands:{}".format(self.clients[index].id, card,self.clients[index].hands()))
-                print("Remain cards on desktop:",self.tiles)
+                card = self.clients[self.index].play_hand()
+                print(
+                    "Player:{} play card:{} hands:{}".format(self.clients[self.index].id, card,
+                                                             self.clients[self.index].hand_str()))
+                print("Remain cards on desktop:", self.tiles)
                 # Inform others
             else:
                 print(result)
                 break
 
-            index += 1
-            index %= 3
+            self.index += 1
+            self.index %= 3
 
         print("Game over!")
 
@@ -62,10 +69,18 @@ class GameServer(object):
 
     def deal(self):
         # deal
+        random.shuffle(self.tiles)
         for index in range(0, 13):
             for ci in self.clients:
                 tile = self.tiles.pop(0)
                 ci.touch_tile(tile)
+
+    def clone(self):
+        game_server = GameServer
+        game_server.index = self.index
+        game_server.clients = [client.clone() for client in self.clients]
+        game_server.tiles = copy.deepcopy(self.tiles)
+        return game_server
 
     def __str__(self):
         return 'server tiles:{} '.format(self.tiles)

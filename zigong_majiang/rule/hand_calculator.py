@@ -6,7 +6,8 @@ from zigong_majiang.rule.tile_convert import TilesConverter
 
 
 class HandCalculator(object):
-    def estimate_hand_value_zigong(self, tiles_18, win_tile):
+    @staticmethod
+    def estimate_hand_value_zigong(tiles_18, win_tile):
         """
         it's a specific version of China SiChuan Zigong majhong.
         :param tiles_18:

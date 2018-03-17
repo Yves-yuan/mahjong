@@ -2,7 +2,8 @@ from zigong_majiang.rule.utils import is_pair, is_pon, is_chi
 
 
 class ScoresCalculator(object):
-     def calculate_scores_zigong(self, hand, wintile, tiles_18):
+    @staticmethod
+    def calculate_scores_zigong(hand, wintile, tiles_18):
         # find gang
         gang = 0
         for tile in tiles_18:

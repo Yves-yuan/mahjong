@@ -1,3 +1,4 @@
+import copy
 import random
 
 from zigong_majiang.rule.agari import Agari
@@ -18,13 +19,17 @@ def tiles_to_string(tiles):
     return tongzi, tiaozi
 
 
-class Client(object):
+class Client:
     def __init__(self, client_id: int):
         self.tiles_18 = [0] * 18
         self.last_tile = 0
         self.calculator = HandCalculator()
         self.agari = Agari()
         self.id = client_id
+        self.opponents = [Client] * 2
+
+    def set_opponent(self, opponent):
+        self.opponents.append(opponent)
 
     def play_hand(self):
         while True:
@@ -46,10 +51,21 @@ class Client(object):
         else:
             return GameResult(self.id)
 
-    def hands(self):
+    def hand_str(self):
         tongzi, tiaozi = TilesConverter.tiles_18_to_str(self.tiles_18)
         r = "tongzi:{} tiaozi:{}".format(tongzi, tiaozi)
         return r
+
+    def hands(self):
+        return self.tiles_18
+
+    def clone(self):
+        client = Client(self.id)
+        client.last_tile = self.last_tile
+        client.tiles_18 = copy.deepcopy(self.tiles_18)
+        for opponent in self.opponents:
+            client.opponents.append(opponent.clone())
+        return client
 
     def __str__(self):
         return 'client id :{} , hand:{} '.format(self.id, self.tiles_18)
