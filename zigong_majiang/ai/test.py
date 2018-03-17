@@ -43,7 +43,6 @@ ves = VesAI(2)
 comb_gen = PermCombGenerator(Tiles, 13, end_point=2)
 comb = comb_gen.next()
 while comb is not None:
-    comb = comb_gen.next()
     comb_str = ""
     for tile in comb:
         comb_str += tile.__str__() + ","
@@ -60,4 +59,5 @@ while comb is not None:
         db.rollback()
         print("wrong")
         print(sys.exc_info()[0], sys.exc_info()[1])
+    comb = comb_gen.next()
 # ves.calc_effective_cards(tiles_18, 1)
