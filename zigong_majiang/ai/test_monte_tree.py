@@ -28,4 +28,4 @@ game_state.check()
 
 tree_node = TreeNode(net=None, game_state=game_state)
 
-# tree_search(tree_node, N_SIMS)
+tree_search(tree_node, N_SIMS, server)

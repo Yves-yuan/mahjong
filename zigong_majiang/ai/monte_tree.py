@@ -6,6 +6,7 @@ import math
 import sys
 
 from zigong_majiang.ai.game_state import GameState
+from zigong_majiang.rule.agari import Agari
 from zigong_majiang.rule.hand_calculator import HandCalculator
 from zigong_majiang.simulator.client import Client
 from zigong_majiang.simulator.game_server import GameServer
@@ -28,6 +29,8 @@ REPORT_PERIOD = 200
 RESIGN_THRES = 0.025
 
 PLAYER_NUM = 3
+UNIFORM_PROBABILITY = 1 / 18
+UNIFORM_DISTRIBUTION = [UNIFORM_PROBABILITY] * 18
 
 
 class TreeNode:
@@ -48,36 +51,37 @@ class TreeNode:
         self.av = 0
         self.aw = 0
         self.children = None
+        self.touch_tile = 0
+        self.discard_tile = 0
+
+    def clone(self):
+        node = TreeNode(None, self.game_state.clone())
+        return node
+
+    def touch(self, tile):
+        self.game_state.touch_tile(tile)
+        self.touch_tile = tile
+
+    def discard(self, tile):
+        self.game_state.discard(tile)
+        self.discard_tile = tile
 
     def expand(self):
         """ add and initialize children to a leaf node """
         """ 扩展子节点，包括自己打出的牌和对手摸牌打牌 """
-        distribution = self.net.predict_distribution(self.game_state)
+        # distribution = self.net.predict_distribution(self.game_state)
+        distribution = UNIFORM_DISTRIBUTION
         self.children = []
-        for c in self.game_state.hands():
-            pos2 = 0
-            if pos2 is None:
+        turn = self.game_state.turn
+        for tile in range(0, len(self.game_state.hands[turn])):
+            if self.game_state.hands[turn][tile] <= 0:
                 continue
-            node = TreeNode(self.net, pos2)
-            self.children.append(node)
-            x, y = c % W - 1, c // W - 1
-            value = distribution[y * N + x]
-
+            node = self.clone()
+            node.discard(tile)
+            value = distribution[tile]
             node.pv = PRIOR_NET
             node.pw = PRIOR_NET * value
-
-        # Add also a pass move - but only if this doesn't trigger a losing
-        # scoring (or we have no other option)
-        if not self.children:
-            can_pass = True
-        else:
-            can_pass = self.game_state.score() >= 0
-
-        if can_pass:
-            node = TreeNode(self.net, self.game_state.pass_move())
             self.children.append(node)
-            node.pv = PRIOR_NET
-            node.pw = PRIOR_NET * distribution[-1]
 
     def puct_urgency(self, n0):
         # XXX: This is substituted by global_puct_urgency()
@@ -163,10 +167,10 @@ def tree_descend(tree: TreeNode, server, disp=False):
 
     while nodes[-1].children is not None:
         # 如果已经和牌，直接退出
-        result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(index),
-                                                           tree.game_state.hands_index(index)[0])
-        if result.is_win:
-            nodes[-1].game_result = result
+        is_win = Agari.is_win_zigong(tree.game_state.hands_index(index))
+        if is_win:
+            nodes[-1].game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(index),
+                                                                              tree.game_state.hands_index(index)[0])
             return nodes
 
         children = list(nodes[-1].children)
@@ -183,11 +187,6 @@ def tree_descend(tree: TreeNode, server, disp=False):
         node = max(zip(children, urgencies), key=lambda t: t[1])[0]
         nodes.append(node)
 
-        if node.pos.last is None:
-            passes += 1
-        else:
-            passes = 0
-
         # updating visits on the way *down* represents "virtual loss", relevant for parallelization
         node.v += 1
 
@@ -196,8 +195,8 @@ def tree_descend(tree: TreeNode, server, disp=False):
         index %= PLAYER_NUM
 
         if len(server.tiles) > 0:
-            tile = server.tiles.pop[0]
-            node.game_state.touch_tile(index, tile)
+            tile = server.tiles.pop(0)
+            node.touch(tile)
             # 扩展子树
             node.expand()
 
@@ -236,15 +235,31 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
 
         # 模拟对局
         nodes = tree_descend(tree, server, disp=debug_disp)
-
+        print_nodes(nodes)
         i += 1
 
         last_node = nodes[-1]
-        if last_node.pos.last is None and last_node.pos.last2 is None:
+        if last_node.game_result is not None:
+            # todo:计算最大得分
             score = 1 if last_node.pos.score() > 0 else -1
         else:
-            score = tree.net.predict_winrate(last_node.pos)
+            # todo:使用网络预测得分
+            score = tree.net.predict_winrate(last_node.game_result)
 
         tree_update(nodes, score, disp=debug_disp)
 
     return tree.best_move(tree.pos.n <= PROPORTIONAL_STAGE)
+
+
+def print_nodes(nodes):
+    first = True
+    for node in nodes:
+        if first:
+            first = False
+            continue
+        print("玩家{}打牌:{},玩家{}摸牌:{}".format((node.game_state.turn + 2) % 3, node.discard_tile, node.game_state.turn,
+                                           node.touch_tile))
+    if nodes[-1].game_result is None:
+        print("平局")
+    else:
+        print(nodes[-1].game_result)

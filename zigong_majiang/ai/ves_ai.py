@@ -17,7 +17,7 @@ class VesAI(object):
         for card in range(0, 18):
             if tiles_18[card] < 4:
                 tiles_18[card] += 1
-                if self.agari.is_agari_zigong(tiles_18):
+                if Agari.is_win_zigong(tiles_18):
                     draw_hands.append(card)
                 tiles_18[card] -= 1
         return draw_hands

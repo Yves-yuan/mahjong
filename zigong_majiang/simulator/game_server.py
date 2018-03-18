@@ -15,9 +15,14 @@ class GameServer(object):
         self.clients = [] * size
         self.index = First
 
+    @staticmethod
+    def set_opponents(clients):
+        for index in range(0, len(clients)):
+            clients[index].set_opponent(clients[(index + 1) % 3])
+            clients[index].set_opponent(clients[(index + 2) % 3])
+
     def init(self):
-        for index in range(0, len(self.clients)):
-            self.clients[index].set_opponent(self.clients[(index + 1) % 3])
+        GameServer.set_opponents(self.clients)
 
         for index in range(len(Tiles)):
             self.tiles[4 * index] = Tiles[index]
@@ -76,9 +81,10 @@ class GameServer(object):
                 ci.touch_tile(tile)
 
     def clone(self):
-        game_server = GameServer
+        game_server = GameServer()
         game_server.index = self.index
         game_server.clients = [client.clone() for client in self.clients]
+        self.set_opponents(game_server.clients)
         game_server.tiles = copy.deepcopy(self.tiles)
         return game_server
 

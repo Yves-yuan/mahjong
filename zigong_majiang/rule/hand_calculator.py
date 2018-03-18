@@ -17,8 +17,7 @@ class HandCalculator(object):
         """
 
         scores_calculator = ScoresCalculator()
-        agari = Agari()
-        if not agari.is_agari_zigong(tiles_18):
+        if not Agari.is_win_zigong(tiles_18):
             return HandResponseZigong(error='Hand is not winning')
 
         divider = HandDivider()

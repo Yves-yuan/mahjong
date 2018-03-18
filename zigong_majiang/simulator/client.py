@@ -26,7 +26,7 @@ class Client:
         self.calculator = HandCalculator()
         self.agari = Agari()
         self.id = client_id
-        self.opponents = [Client] * 2
+        self.opponents = []
 
     def set_opponent(self, opponent):
         self.opponents.append(opponent)
@@ -44,7 +44,7 @@ class Client:
         self.last_tile = tile
 
     def estimate_hand_value(self, tile):
-        is_win = self.agari.is_agari_zigong(self.tiles_18)
+        is_win = Agari.is_win_zigong(self.tiles_18)
         if is_win:
             results = self.calculator.estimate_hand_value_zigong(self.tiles_18, tile)
             return GameResult(self.id, True, results)
@@ -63,8 +63,6 @@ class Client:
         client = Client(self.id)
         client.last_tile = self.last_tile
         client.tiles_18 = copy.deepcopy(self.tiles_18)
-        for opponent in self.opponents:
-            client.opponents.append(opponent.clone())
         return client
 
     def __str__(self):
