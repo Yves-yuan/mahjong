@@ -6,6 +6,7 @@ import math
 import sys
 
 from zigong_majiang.ai.game_state import GameState
+from zigong_majiang.ai.pure_attack.attack import Attack
 from zigong_majiang.rule.agari import Agari
 from zigong_majiang.rule.hand_calculator import HandCalculator
 from zigong_majiang.simulator.client import Client
@@ -16,7 +17,7 @@ W = N + 2
 empty = "\n".join([(N + 1) * ' '] + N * [' ' + N * '.'] + [(N + 2) * ' '])
 colstr = 'ABCDEFGHJKLMNOPQRST'
 
-N_SIMS = 5
+N_SIMS = 500
 PUCT_C = 0.1
 PROPORTIONAL_STAGE = 3
 TEMPERATURE = 2
@@ -44,6 +45,7 @@ class TreeNode:
         self.net = net
         self.game_state = game_state
         self.game_result = None
+        self.attack_drop_p = 0
         self.v = 0
         self.w = 0
         self.pv = 0
@@ -53,6 +55,9 @@ class TreeNode:
         self.children = None
         self.touch_tile = 0
         self.discard_tile = 0
+
+    def set_attack_drop_p(self, p):
+        self.attack_drop_p = p
 
     def clone(self):
         node = TreeNode(None, self.game_state.clone())
@@ -156,8 +161,6 @@ def tree_descend(tree: TreeNode, server, disp=False):
     """ 目前采取随机打牌的策略 """
     tree.v += 1
     nodes = [tree]
-    passes = 0
-    root = True
     index = 0
 
     # Initialize root node
@@ -167,6 +170,7 @@ def tree_descend(tree: TreeNode, server, disp=False):
 
     while nodes[-1].children is not None:
         # 如果已经和牌，直接退出
+        tree = nodes[-1]
         is_win = Agari.is_win_zigong(tree.game_state.hands_index(index))
         if is_win:
             nodes[-1].game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(index),
@@ -174,16 +178,17 @@ def tree_descend(tree: TreeNode, server, disp=False):
             return nodes
 
         children = list(nodes[-1].children)
-
-        # 代表是自己的轮
-        # 每一次循环处理打牌的决定和摸牌，摸牌后扩展子树
+        attack_probabilitys = Attack.think(nodes[-1].game_state)
+        for index in range(0, len(children)):
+            children[index].set_attack_drop_p(attack_probabilitys[index])
         # Pick the most urgent child
         random.shuffle(children)  # randomize the max in case of equal urgency
+
         urgencies = global_puct_urgency(nodes[-1].v, *puct_urgency_input(children))
-        if root:
-            dirichlet = np.random.dirichlet((0.03, 1), len(children))
-            urgencies = urgencies * 0.75 + dirichlet[:, 0] * 0.25
-            root = False
+        attack_probabilitys_np = np.array([n.attack_drop_p for n in children])
+        dirichlet = np.random.dirichlet((0.03, 1), len(children))
+        urgencies = urgencies * 0.5 + dirichlet[:, 0] * 0.25 + attack_probabilitys_np * 0.25
+
         node = max(zip(children, urgencies), key=lambda t: t[1])[0]
         nodes.append(node)
 
@@ -240,15 +245,17 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
 
         last_node = nodes[-1]
         if last_node.game_result is not None:
-            # todo:计算最大得分
-            score = 1 if last_node.pos.score() > 0 else -1
+            # 计算最大得分
+            max_cost = -1
+            for result in last_node.game_result:
+                if result.cost > max_cost:
+                    max_cost = result.cost
+
         else:
-            # todo:使用网络预测得分
-            score = tree.net.predict_winrate(last_node.game_result)
+            continue
+        tree_update(nodes, max_cost, disp=debug_disp)
 
-        tree_update(nodes, score, disp=debug_disp)
-
-    return tree.best_move(tree.pos.n <= PROPORTIONAL_STAGE)
+    return tree.best_move(True)
 
 
 def print_nodes(nodes):

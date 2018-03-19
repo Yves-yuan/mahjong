@@ -12,16 +12,21 @@ raw_sql = """INSERT INTO comb_chain(hands_comb,
          search_chain)
          VALUES ('{0}', '')
          ON DUPLICATE KEY UPDATE search_chain = ''"""
-comb_gen = PermCombMahjongGenerator(Tiles, 13, end_point=1)
+comb_gen = PermCombMahjongGenerator(Tiles, 13, end_point=1, start_comb=[0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6])
 comb = comb_gen.next()
+i = 1
 while comb is not None:
-    print(comb)
-
+    i += 1
+    if i % 1000 == 0:
+        print(comb)
     comb_str = ""
+    comb_str_list = []
     for tile in comb:
-        comb_str += tile.__str__() + ","
+        comb_str_list.append(tile.__str__()+",")
+    comb_str = ''.join(comb_str_list)
     comb_str = comb_str[:-1]
     s = raw_sql.format(comb_str)
+
     try:
         # 执行sql语句
         cursor.execute(s)
