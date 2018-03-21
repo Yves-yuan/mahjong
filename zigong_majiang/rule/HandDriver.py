@@ -67,10 +67,10 @@ class HandDivider(object):
 
         return pair_indices
 
-    def find_valid_combinations(self, tiles_34, first_index, second_index, hand_not_completed=False):
+    def find_valid_combinations(self, tiles_18, first_index, second_index, hand_not_completed=False):
         """
         Find and return all valid set combinations in given suit
-        :param tiles_34:
+        :param tiles_18:
         :param first_index:
         :param second_index:
         :param hand_not_completed: in that mode we can return just possible shi\pon sets
@@ -78,8 +78,8 @@ class HandDivider(object):
         """
         indices = []
         for x in range(first_index, second_index + 1):
-            if tiles_34[x] > 0:
-                indices.extend([x] * tiles_34[x])
+            if tiles_18[x] > 0:
+                indices.extend([x] * tiles_18[x])
 
         if not indices:
             return []

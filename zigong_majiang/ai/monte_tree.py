@@ -208,22 +208,13 @@ def tree_descend(tree: TreeNode, server, disp=False):
     return nodes
 
 
-def tree_update(nodes, amaf_map, score, disp=False):
+def tree_update(nodes, score, disp=False):
     """ Store simulation result in the tree (@nodes is the tree path) """
     for node in reversed(nodes):
-        node.w += score < 0  # score is for to-play, node statistics for just-played
-        # Update the node children AMAF stats with moves we made
-        # with their color
-        amaf_map_value = 1 if node.pos.n % 2 == 0 else -1
-        if node.children is not None:
-            for child in node.children:
-                if child.pos.last is None:
-                    continue
-                if amaf_map[child.pos.last] == amaf_map_value:
-                    child.aw += score > 0  # reversed perspective
-                    child.av += 1
-        score = -score
-
+        if node.game_state.turn == nodes[0].game_state.turn:
+            node.w += score  # score is for to-play, node statistics for just-played
+        else:
+            node.w -= score
 
 def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
     """ Perform MCTS search from a given state for a given #iterations """
