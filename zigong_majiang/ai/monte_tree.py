@@ -173,8 +173,10 @@ def tree_descend(tree: TreeNode, server, disp=False):
         tree = nodes[-1]
         is_win = Agari.is_win_zigong(tree.game_state.hands_index(index))
         if is_win:
+            print("开始计算",tree.game_state.hands_index(index))
             nodes[-1].game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(index),
                                                                               tree.game_state.hands_index(index)[0])
+            print("结束计算")
             return nodes
 
         children = list(nodes[-1].children)
@@ -201,9 +203,11 @@ def tree_descend(tree: TreeNode, server, disp=False):
 
         if len(server.tiles) > 0:
             tile = server.tiles.pop(0)
-            node.touch(tile)
+            child = node.clone()
+            child.touch(tile)
+            nodes.append(child)
             # 扩展子树
-            node.expand()
+            child.expand()
 
     return nodes
 
@@ -233,7 +237,7 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
         nodes = tree_descend(tree, server, disp=debug_disp)
         print_nodes(nodes)
         i += 1
-
+        print(i," ",n)
         last_node = nodes[-1]
         if last_node.game_result is not None:
             # 计算最大得分
@@ -245,6 +249,7 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
         else:
             continue
         tree_update(nodes, max_cost, disp=debug_disp)
+
 
     return tree.best_move(True)
 
@@ -260,4 +265,4 @@ def print_nodes(nodes):
     if nodes[-1].game_result is None:
         print("平局")
     else:
-        print(nodes[-1].game_result)
+        print(nodes[-1].game_result.__str__())

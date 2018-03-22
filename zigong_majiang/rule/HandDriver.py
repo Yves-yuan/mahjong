@@ -1,5 +1,5 @@
 import itertools
-
+from functools import reduce
 from zigong_majiang.rule.utils import is_chi, is_pon
 
 

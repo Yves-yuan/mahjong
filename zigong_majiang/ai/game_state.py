@@ -47,7 +47,17 @@ class GameState:
         return copy.deepcopy(self.hands[index])
 
     def touch_tile(self, tile):
+        total = 0
+        for num in self.hands[self.turn]:
+            total += num
+        if total > 13:
+            print("wrong")
         self.hands[self.turn][tile] += 1
+        total = 0
+        for num in self.hands[self.turn]:
+            total += num
+        if total > 14:
+            print("wrong")
 
     def score(self, index):
         return HandCalculator.estimate_hand_value_zigong(self.hands[index], self.hands[index][0])
