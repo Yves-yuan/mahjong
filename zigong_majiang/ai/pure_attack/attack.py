@@ -1,11 +1,19 @@
 import numpy as np
 import copy
+
+from zigong_majiang.ai.game_state import GameState
+from zigong_majiang.ai.ves_ai import VesAI
+from zigong_majiang.rule.hand_calculator import HandCalculator
+from zigong_majiang.ai.constant import constant
+
 S0 = 10
 S1 = 6
 S2 = 6
 K0 = 2
 K1 = 1
 K2 = 1
+
+ves_ai = VesAI(1)
 
 
 class Attack:
@@ -59,19 +67,58 @@ class Attack:
     #     return (sum_rpp >= sum_rp)
 
     @staticmethod
-    def think(game_state):
+    def think(game_state: GameState):
         """
         计算打牌的概率，返回数组，数组中
         :param game_state:
         :return:出牌概率归一化后的数组
         """
+        expects = []
+        for t in range(0, 18):
+            expect = Attack.think_expectation(t, game_state)
+            if expect > 0:
+                expects.append(expect)
+        expect_prob = np.array(Attack.weights2_probability(expects))
+
         tile_weights = []
         for t in range(0, 18):
             p_t = Attack.rp_t(t, game_state)
             if p_t > 0:
                 tile_weights.append(p_t)
-        probability = Attack.weights2_probability(tile_weights)
-        return probability
+        probability = np.array(Attack.weights2_probability(tile_weights))
+        final = expect_prob * 0.7 + probability * 0.3
+        return final
+
+    @staticmethod
+    def think_expectation(tile, game_state: GameState):
+        hand = copy.deepcopy(game_state.hands[game_state.turn])
+        if hand[tile] < 0:
+            print("error:tile num < 0")
+            return -1
+        if hand[tile] == 0:
+            return -1
+        hand[tile] -= 1
+        chains = ves_ai.calc_effective_cards(hand, 1)
+        expect = 0
+        for chain in chains:
+            # 计算每种胡牌链的期望
+            expect_per_chain = 0.0
+            pairs = chain.touchPlayPairs
+            prob_pair = 1.0
+            for pair in pairs:
+                need = pair.touch_tile()
+                remain = game_state.get_remain(need, game_state.turn)
+                prob_pair *= remain
+                prob_pair /= constant.PLAYER_NUM
+            for dh in chain.drawHands:
+                # 计算一个链种每种胡牌的期望
+                chain.hand[dh] += 1
+                cost = HandCalculator.estimate_max_score(chain.hand, dh)
+                chain.hand[dh] -= 1
+                remain_dh = game_state.get_remain(dh,game_state.turn)
+                expect_per_chain += prob_pair * remain_dh / constant.PLAYER_NUM * cost
+            expect += expect_per_chain
+        return expect
 
     @staticmethod
     def weights2_probability(tile_weights_in):

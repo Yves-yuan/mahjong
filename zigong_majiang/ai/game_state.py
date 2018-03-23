@@ -8,7 +8,7 @@ class GameState:
     def __init__(self, hands, discards, melds_3, melds_4, turn=0):
         """
         表示牌局当前状态的类，记录了各个玩家的手牌，丢弃牌，碰牌，杠牌，到谁的轮
-        :param hands: 长度为18的数组，每个值代表数组索引的牌的数量
+        :param hands: 长度为3 * 18的数组，每个值代表数组索引的牌的数量
         :param discards: 丢弃的牌，列表，值为丢弃的牌的值
         :param melds_3:
         :param melds_4:
@@ -25,6 +25,11 @@ class GameState:
         for discard in self.discards:
             count += discard.count(tile)
         return count
+
+    def get_remain(self, tile, index):
+        in_hand = self.hands[index][tile]
+        discard_num = self.get_discards(tile)
+        return 4 - in_hand - discard_num
 
     def check(self):
         print(self.hands)

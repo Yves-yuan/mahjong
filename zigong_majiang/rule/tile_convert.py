@@ -64,3 +64,10 @@ class TilesConverter(object):
             return "{}筒".format(tile+1)
         else:
             return "{}条".format(tile - 8)
+
+    @staticmethod
+    def tiles18_count(tiles_18):
+        total = 0
+        for num in tiles_18:
+            total += num
+        return total

@@ -6,5 +6,11 @@ class TouchPlayPair(object):
         self.touch_card = Tile(touch_card)
         self.play_card = Tile(play_card)
 
+    def touch_tile(self):
+        return self.touch_card.tile
+
+    def play_tile(self):
+        return self.play_card.tile
+
     def __str__(self):
         return "摸牌:{},打牌:{} ".format(self.touch_card.__str__(), self.play_card.__str__())

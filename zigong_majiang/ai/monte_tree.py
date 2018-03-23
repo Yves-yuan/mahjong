@@ -138,6 +138,9 @@ class TreeNode:
                 distribution[-1] = p
         return distribution
 
+    @staticmethod
+    def player_num():
+        return PLAYER_NUM
 
 def puct_urgency_input(nodes):
     w = np.array([float(n.w) for n in nodes])

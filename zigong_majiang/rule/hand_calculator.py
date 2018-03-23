@@ -18,6 +18,7 @@ class HandCalculator(object):
 
         scores_calculator = ScoresCalculator()
         if not Agari.is_win_zigong(tiles_18):
+            print("error,no win")
             return HandResponseZigong(error='Hand is not winning')
 
         divider = HandDivider()
@@ -29,3 +30,18 @@ class HandCalculator(object):
             calculated_hand = HandResponseZigong(hand, cost)
             calculated_hands.append(calculated_hand)
         return calculated_hands
+
+    @staticmethod
+    def estimate_max_score(tiles_18, win_tile):
+        """
+        计算最大胡牌得分
+        :param tiles_18:必须是胡牌的手牌，例如14张
+        :param win_tile:
+        :return:
+        """
+        ch = HandCalculator.estimate_hand_value_zigong(tiles_18,win_tile)
+        max_cost = 0
+        for result in ch:
+            if result.cost > max_cost:
+                max_cost = result.cost
+        return max_cost
