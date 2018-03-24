@@ -1,9 +1,9 @@
 import copy
 
-from zigong_majiang.rule.agari import Agari
-from zigong_majiang.rule.judge_tile_chain import JudgeTileChain
-from zigong_majiang.rule.tile_convert import TilesConverter
-from zigong_majiang.rule.touch_play_pair import TouchPlayPair
+from zigong_majiang.rule.hand.agari import Agari
+from zigong_majiang.rule.chain.judge_tile_chain import JudgeTileChain
+from zigong_majiang.rule.tile.tile_convert import TilesConverter
+from zigong_majiang.rule.chain.touch_play_pair import TouchPlayPair
 import logging
 
 

@@ -1,8 +1,7 @@
-from zigong_majiang.rule.agari import Agari
-from zigong_majiang.rule.hand_response import HandResponseZigong
-from zigong_majiang.rule.HandDriver import HandDivider
-from zigong_majiang.rule.scores import ScoresCalculator
-from zigong_majiang.rule.tile_convert import TilesConverter
+from zigong_majiang.rule.hand.agari import Agari
+from zigong_majiang.rule.hand.hand_response import HandResponseZigong
+from zigong_majiang.rule.hand.hand_driver import HandDivider
+from zigong_majiang.rule.hand.scores import ScoresCalculator
 
 
 class HandCalculator(object):

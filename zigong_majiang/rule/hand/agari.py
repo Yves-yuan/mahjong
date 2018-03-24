@@ -1,9 +1,17 @@
 import copy
+from zigong_majiang.rule.utils import check_ready_to_win
 
 
 class Agari(object):
     @staticmethod
     def is_win_zigong(tiles_18):
+        """
+        tiles_18'length must be ready to win for example:14
+        :param tiles_18:
+        :return:
+        """
+        if not check_ready_to_win(tiles_18):
+            return False
         tiles = copy.deepcopy(tiles_18)
         duizi = sum([tiles[i] == 2 for i in range(0, 18)])
         sige = sum([tiles[i] == 4 for i in range(0, 18)])

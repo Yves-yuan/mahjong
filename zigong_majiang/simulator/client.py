@@ -1,9 +1,9 @@
 import copy
 import random
 
-from zigong_majiang.rule.agari import Agari
-from zigong_majiang.rule.hand_calculator import HandCalculator
-from zigong_majiang.rule.tile_convert import TilesConverter
+from zigong_majiang.rule.hand.agari import Agari
+from zigong_majiang.rule.hand.hand_calculator import HandCalculator
+from zigong_majiang.rule.tile.tile_convert import TilesConverter
 from zigong_majiang.simulator.game_result import GameResult
 
 

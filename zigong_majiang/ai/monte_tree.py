@@ -4,22 +4,20 @@ import random
 import numpy as np
 import math
 
-import sys
-
 from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.pure_attack.attack import Attack
-from zigong_majiang.rule.agari import Agari
-from zigong_majiang.rule.hand_calculator import HandCalculator
-from zigong_majiang.rule.tile import Tile
-from zigong_majiang.simulator.client import Client
+from zigong_majiang.rule.hand.agari import Agari
+from zigong_majiang.rule.hand.hand_calculator import HandCalculator
+from zigong_majiang.rule.tile.tile import Tile
 from zigong_majiang.simulator.game_server import GameServer
+from zigong_majiang.log.logger import logger
 
 N = 7
 W = N + 2
 empty = "\n".join([(N + 1) * ' '] + N * [' ' + N * '.'] + [(N + 2) * ' '])
 colstr = 'ABCDEFGHJKLMNOPQRST'
 
-N_SIMS = 500
+N_SIMS = 5
 PUCT_C = 0.1
 PROPORTIONAL_STAGE = 3
 TEMPERATURE = 2
@@ -57,6 +55,22 @@ class TreeNode:
         self.children = None
         self.touch_tile = 0
         self.discard_tile = 0
+        self.lose_index = 0
+        self.win_index = 0
+        self.reason = "dogfall"
+
+    def get_turn(self):
+        return self.game_state.turn
+
+    def zimo(self, result):
+        self.game_result = result
+        self.reason = "zimo"
+
+    def fangpao(self, lose_index, win_index, result):
+        self.lose_index = lose_index
+        self.win_index = win_index
+        self.game_result = result
+        self.reason = "fangpao"
 
     def set_attack_drop_p(self, p):
         self.attack_drop_p = p
@@ -174,12 +188,14 @@ def tree_descend(tree: TreeNode, server, disp=False):
     while nodes[-1].children is not None:
         # 如果已经和牌，直接退出
         tree = nodes[-1]
-        log.info("Tree descend,it's {}'s turn,touched:{} ,hands:{}".format(tree.game_state.turn, Tile(tree.touch_tile),
+        log.info("Tree descend,it's {}'s turn,touched:{} ,hands:{}".format(tree.get_turn(),
+                                                                           Tile(tree.touch_tile),
                                                                            tree.game_state.get_cur_hands_str()))
-        is_win = Agari.is_win_zigong(tree.game_state.hands_index(index))
+        is_win = Agari.is_win_zigong(tree.game_state.hands_index(tree.get_turn()))
         if is_win:
-            nodes[-1].game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(index),
-                                                                              tree.game_state.hands_index(index)[0])
+            game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(tree.get_turn()),
+                                                                    tree.touch_tile)
+            nodes[-1].zimo(game_result)
             return nodes
 
         children = list(nodes[-1].children)
@@ -202,11 +218,22 @@ def tree_descend(tree: TreeNode, server, disp=False):
         log.info("discard tile:{}".format(Tile(node.discard_tile)))
         # updating visits on the way *down* represents "virtual loss", relevant for parallelization
         node.v += 1
+        fangpao = False
+        for index_fangpao in range(0, PLAYER_NUM - 1):
+            think_fangpao_index = node.game_state.get_next_turn(index_fangpao)
+            if Attack.think_fangpao(node.game_state, think_fangpao_index, node.discard_tile):
+                fangpao = True
+                hand_fangpao = tree.game_state.hands_index(think_fangpao_index)
+                hand_fangpao[node.discard_tile] += 1
+                result_fangpao = HandCalculator.estimate_hand_value_zigong(hand_fangpao, node.discard_tile)
+                result_node = node.clone()
+                result_node.fangpao(node.game_state.get_next_turn(-1), node.game_state.get_next_turn(index_fangpao),
+                                    result_fangpao)
+                nodes.append(result_node)
+        if fangpao:
+            return nodes
 
         # 如果牌墙还有牌，那么就摸牌，扩展子树
-        index += 1
-        index %= PLAYER_NUM
-
         if len(server.tiles) > 0:
             tile = server.tiles.pop(0)
             child = node.clone()
@@ -244,7 +271,7 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
         nodes = tree_descend(tree, server, disp=debug_disp)
         print_nodes(nodes)
         i += 1
-        print(i, " ", n)
+        logger().info("simulation {} over,total:{}".format(i, n))
         last_node = nodes[-1]
         if last_node.game_result is not None:
             # 计算最大得分
@@ -252,7 +279,8 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
             for result in last_node.game_result:
                 if result.cost > max_cost:
                     max_cost = result.cost
-
+            logging.getLogger("mahjong").info("game end reason:{} cost:{}".format(last_node.reason, max_cost))
+            logging.getLogger("mahjong").info("")
         else:
             continue
         tree_update(nodes, max_cost, disp=debug_disp)
@@ -266,9 +294,7 @@ def print_nodes(nodes):
         if first:
             first = False
             continue
-        print("玩家{}打牌:{},玩家{}摸牌:{}".format((node.game_state.turn + 2) % 3, node.discard_tile, node.game_state.turn,
-                                           node.touch_tile))
-    if nodes[-1].game_result is None:
-        print("平局")
-    else:
-        print(nodes[-1].game_result.__str__())
+        logger().info(
+            "玩家{}打牌:{},玩家{}摸牌:{}".format((node.game_state.turn + 2) % 3, node.discard_tile, node.game_state.turn,
+                                         node.touch_tile))
+    logger().info("Reason of over:{}".format(nodes[-1].reason))

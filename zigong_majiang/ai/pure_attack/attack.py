@@ -3,7 +3,8 @@ import copy
 
 from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.ves_ai import VesAI
-from zigong_majiang.rule.hand_calculator import HandCalculator
+from zigong_majiang.rule.hand.agari import Agari
+from zigong_majiang.rule.hand.hand_calculator import HandCalculator
 from zigong_majiang.ai.constant import constant
 import logging
 
@@ -57,18 +58,29 @@ class Attack:
                     return [t - 2]
         return None
 
-    # def think_peng(self):
-    #     l_r_t = self.player.cnt[game_state.receive_tiles[-1][1]]
-    #     sum_rp, sum_rpp = 0, 0
-    #     for t in range(0, 34):
-    #         sum_rp += self.rp_t(t)
-    #     self.player.cnt[l_r_t] -= 2
-    #     for t in range(0, 34):
-    #         sum_rpp += self.rp_t(t)
-    #     sum_rpp += 3 * self.s0
-    #     self.player.cnt[l_r_t] += 2
-    #
-    #     return (sum_rpp >= sum_rp)
+    @staticmethod
+    def think_peng(game_state: GameState, index, tile):
+        num = game_state.get_remain(tile, index)
+        if num < 2:
+            return False
+        sum_rp, sum_rpp = 0, 0
+        for t in range(0, 18):
+            sum_rp += Attack.rp_t(t, game_state)
+        game_state.hands[index][tile] -= 2
+        for t in range(0, 18):
+            sum_rpp += Attack.rp_t(t, game_state)
+        sum_rpp += 3 * S0
+        game_state.hands[index][tile] += 2
+
+        return sum_rpp >= sum_rp
+
+    @staticmethod
+    def think_fangpao(game_state: GameState, index, tile):
+        hand = game_state.hands[index]
+        hand[tile] += 1
+        result = Agari.is_win_zigong(hand)
+        hand[tile] -= 1
+        return result
 
     @staticmethod
     def think(game_state: GameState):

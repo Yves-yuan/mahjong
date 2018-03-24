@@ -1,8 +1,7 @@
 import copy
-from collections import namedtuple
 
-from zigong_majiang.rule.hand_calculator import HandCalculator
-from zigong_majiang.rule.tile_convert import TilesConverter
+from zigong_majiang.rule.hand.hand_calculator import HandCalculator
+from zigong_majiang.rule.tile.tile_convert import TilesConverter
 
 
 class GameState:
@@ -23,6 +22,9 @@ class GameState:
 
     def get_cur_hands(self):
         return self.hands[self.turn]
+
+    def get_next_turn(self, n):
+        return (self.turn + n) % 3
 
     def get_cur_hands_str(self):
         return TilesConverter.tiles_18_to_str(self.hands[self.turn])

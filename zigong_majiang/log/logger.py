@@ -1,11 +1,17 @@
 import logging
 
+log = logging.getLogger('mahjong')
+
+
+def logger():
+    return log
+
 
 class Logger(object):
     @staticmethod
     def init():
-        # 创建一个logger
         logger = logging.getLogger('mahjong')
+        # 创建一个logger
         logger.setLevel(logging.INFO)
 
         # 创建一个handler，用于输出到控制台

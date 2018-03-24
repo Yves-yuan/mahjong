@@ -1,4 +1,4 @@
-from zigong_majiang.rule.tile_convert import TilesConverter
+from zigong_majiang.rule.tile.tile_convert import TilesConverter
 
 
 class Tile(object):
