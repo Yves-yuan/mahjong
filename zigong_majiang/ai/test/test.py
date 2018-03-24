@@ -1,11 +1,8 @@
-from itertools import permutations
 import pymysql
 import sys
 
-from zigong_majiang.ai.perm_comb import PermCombGenerator
+from zigong_majiang.ai.comb.perm_comb import PermCombGenerator
 from zigong_majiang.ai.ves_ai import VesAI
-from zigong_majiang.rule.tile import Hands
-from zigong_majiang.rule.tile_convert import TilesConverter
 
 Tiles = [0, 0, 0, 0,
          1, 1, 1, 1,

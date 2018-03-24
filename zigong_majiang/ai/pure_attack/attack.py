@@ -5,6 +5,7 @@ from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.ves_ai import VesAI
 from zigong_majiang.rule.hand_calculator import HandCalculator
 from zigong_majiang.ai.constant import constant
+import logging
 
 S0 = 10
 S1 = 6
@@ -14,6 +15,9 @@ K1 = 1
 K2 = 1
 
 ves_ai = VesAI(1)
+
+WEIGHT_FITST = 18
+WEIGHT_SECOND = 1
 
 
 class Attack:
@@ -73,20 +77,23 @@ class Attack:
         :param game_state:
         :return:出牌概率归一化后的数组
         """
+        log = logging.getLogger("mahjong")
         expects = []
         for t in range(0, 18):
             expect = Attack.think_expectation(t, game_state)
-            if expect > 0:
+            if expect >= 0:
                 expects.append(expect)
-        expect_prob = np.array(Attack.weights2_probability(expects))
-
+        expect_prob = np.array(Attack.expects2_probability(expects))
+        log.debug("The expectations{}".format(expect_prob))
         tile_weights = []
         for t in range(0, 18):
             p_t = Attack.rp_t(t, game_state)
             if p_t > 0:
                 tile_weights.append(p_t)
         probability = np.array(Attack.weights2_probability(tile_weights))
-        final = expect_prob * 0.7 + probability * 0.3
+        log.debug("The concentrations{}".format(probability))
+        final = expect_prob * 0.6 + probability * 0.4
+        log.debug("Final{}".format(final))
         return final
 
     @staticmethod
@@ -98,27 +105,51 @@ class Attack:
         if hand[tile] == 0:
             return -1
         hand[tile] -= 1
-        chains = ves_ai.calc_effective_cards(hand, 1)
-        expect = 0
+        chains = ves_ai.calc_effective_cards(hand, 0)
+        expect = 1
         for chain in chains:
             # 计算每种胡牌链的期望
             expect_per_chain = 0.0
             pairs = chain.touchPlayPairs
             prob_pair = 1.0
+            weight = WEIGHT_SECOND
+            if len(pairs) == 0:
+                weight = WEIGHT_FITST
+
             for pair in pairs:
                 need = pair.touch_tile()
                 remain = game_state.get_remain(need, game_state.turn)
                 prob_pair *= remain
                 prob_pair /= constant.PLAYER_NUM
+                if prob_pair > 1:
+                    prob_pair = 1
             for dh in chain.drawHands:
                 # 计算一个链种每种胡牌的期望
                 chain.hand[dh] += 1
                 cost = HandCalculator.estimate_max_score(chain.hand, dh)
                 chain.hand[dh] -= 1
-                remain_dh = game_state.get_remain(dh,game_state.turn)
-                expect_per_chain += prob_pair * remain_dh / constant.PLAYER_NUM * cost
+                remain_dh = game_state.get_remain(dh, game_state.turn)
+                prob_dh = remain_dh / constant.PLAYER_NUM
+                if prob_dh > 1:
+                    prob_dh = 1
+                expect_per_chain += prob_pair * prob_dh * cost * weight
             expect += expect_per_chain
         return expect
+
+    @staticmethod
+    def expects2_probability(expects):
+        """
+        Calculate probability of card to be played according to expectation array.
+        The array represents the expectation of score for hands playing the index's card.
+        :param expects:
+        :return:
+        """
+        tile_expects = copy.deepcopy(expects)
+        sum1 = sum(tile_expects)
+        for index in range(0, len(tile_expects)):
+            if tile_expects[index] > 0:
+                tile_expects[index] = tile_expects[index] / sum1
+        return tile_expects
 
     @staticmethod
     def weights2_probability(tile_weights_in):

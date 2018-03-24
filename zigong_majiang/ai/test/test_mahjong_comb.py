@@ -1,7 +1,7 @@
 import pymysql
 import sys
 
-from zigong_majiang.ai.perm_comb_mahjong import PermCombMahjongGenerator
+from zigong_majiang.ai.comb.perm_comb_mahjong import PermCombMahjongGenerator
 
 Tiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
 

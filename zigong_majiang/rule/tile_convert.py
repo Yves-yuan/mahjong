@@ -46,15 +46,15 @@ class TilesConverter(object):
 
     @staticmethod
     def tiles_18_to_str(tiles_18):
-        tongzi = ""
-        tiaozi = ""
+        tongzi = "筒子:"
+        tiaozi = "条子:"
         for index in range(0, len(tiles_18)):
             if index < 9 and tiles_18[index] > 0:
                 for i in range(0, tiles_18[index]):
-                    tongzi += str(index)
+                    tongzi += str(index+1)
             else:
                 for i in range(0, tiles_18[index]):
-                    tiaozi += str(index - 9)
+                    tiaozi += str(index - 8)
 
         return tongzi, tiaozi
 

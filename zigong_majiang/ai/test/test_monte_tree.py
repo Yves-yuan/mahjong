@@ -1,9 +1,13 @@
 from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.monte_tree import TreeNode, tree_search, N_SIMS
+from zigong_majiang.log.logger import Logger
 from zigong_majiang.simulator.client import Client
 from zigong_majiang.simulator.game_server import GameServer
-import numpy as np
+import logging
 
+Logger.init()
+
+log = logging.getLogger("mahjong")
 server = GameServer()
 client1 = Client(1)
 client2 = Client(2)
@@ -22,7 +26,7 @@ hands = [client1.hands(),
 discards = [[], [], []]
 melds_3 = [[], [], []]
 melds_4 = [[], [], []]
-print(hands)
+log.info(hands)
 game_state = GameState(hands=hands, discards=discards, melds_3=melds_3, melds_4=melds_4)
 game_state.check()
 

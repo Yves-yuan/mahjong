@@ -2,6 +2,7 @@ import copy
 from collections import namedtuple
 
 from zigong_majiang.rule.hand_calculator import HandCalculator
+from zigong_majiang.rule.tile_convert import TilesConverter
 
 
 class GameState:
@@ -20,6 +21,12 @@ class GameState:
         self.melds_3 = melds_3
         self.melds_4 = melds_4
 
+    def get_cur_hands(self):
+        return self.hands[self.turn]
+
+    def get_cur_hands_str(self):
+        return TilesConverter.tiles_18_to_str(self.hands[self.turn])
+
     def get_discards(self, tile):
         count = 0
         for discard in self.discards:
@@ -32,7 +39,6 @@ class GameState:
         return 4 - in_hand - discard_num
 
     def check(self):
-        print(self.hands)
         for index in range(0, len(self.hands)):
             hand = self.hands[index]
             total = 0

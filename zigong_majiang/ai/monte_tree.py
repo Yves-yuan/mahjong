@@ -1,3 +1,4 @@
+import logging
 import random
 
 import numpy as np
@@ -9,6 +10,7 @@ from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.pure_attack.attack import Attack
 from zigong_majiang.rule.agari import Agari
 from zigong_majiang.rule.hand_calculator import HandCalculator
+from zigong_majiang.rule.tile import Tile
 from zigong_majiang.simulator.client import Client
 from zigong_majiang.simulator.game_server import GameServer
 
@@ -138,9 +140,6 @@ class TreeNode:
                 distribution[-1] = p
         return distribution
 
-    @staticmethod
-    def player_num():
-        return PLAYER_NUM
 
 def puct_urgency_input(nodes):
     w = np.array([float(n.w) for n in nodes])
@@ -162,10 +161,11 @@ def tree_descend(tree: TreeNode, server, disp=False):
     """ Descend through the tree to a leaf """
     """ 蒙特卡洛模拟打麻将，每一个节点代表打牌后的牌面,结束条件是有人和牌或者牌被摸完 """
     """ 目前采取随机打牌的策略 """
+    root = True
     tree.v += 1
     nodes = [tree]
     index = 0
-
+    log = logging.getLogger("mahjong")
     # Initialize root node
     # 每个节点代表自己或对手打牌后的牌面
     if tree.children is None:
@@ -174,12 +174,12 @@ def tree_descend(tree: TreeNode, server, disp=False):
     while nodes[-1].children is not None:
         # 如果已经和牌，直接退出
         tree = nodes[-1]
+        log.info("Tree descend,it's {}'s turn,touched:{} ,hands:{}".format(tree.game_state.turn, Tile(tree.touch_tile),
+                                                                           tree.game_state.get_cur_hands_str()))
         is_win = Agari.is_win_zigong(tree.game_state.hands_index(index))
         if is_win:
-            print("开始计算",tree.game_state.hands_index(index))
             nodes[-1].game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(index),
                                                                               tree.game_state.hands_index(index)[0])
-            print("结束计算")
             return nodes
 
         children = list(nodes[-1].children)
@@ -191,12 +191,15 @@ def tree_descend(tree: TreeNode, server, disp=False):
 
         urgencies = global_puct_urgency(nodes[-1].v, *puct_urgency_input(children))
         attack_probabilitys_np = np.array([n.attack_drop_p for n in children])
-        dirichlet = np.random.dirichlet((0.03, 1), len(children))
-        urgencies = urgencies * 0.5 + dirichlet[:, 0] * 0.25 + attack_probabilitys_np * 0.25
-
+        if root:
+            dirichlet = np.random.dirichlet((0.03, 1), len(children))
+            urgencies = urgencies * 0.5 + dirichlet[:, 0] * 0.25 + attack_probabilitys_np * 0.25
+            root = False
+        urgencies = urgencies * 0.7 + attack_probabilitys_np * 0.3
+        log.debug("urgencies:{}".format(urgencies))
         node = max(zip(children, urgencies), key=lambda t: t[1])[0]
         nodes.append(node)
-
+        log.info("discard tile:{}".format(Tile(node.discard_tile)))
         # updating visits on the way *down* represents "virtual loss", relevant for parallelization
         node.v += 1
 
@@ -223,6 +226,7 @@ def tree_update(nodes, score, disp=False):
         else:
             node.w -= score
 
+
 def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
     """ Perform MCTS search from a given state for a given #iterations """
     """ 模特卡罗搜索最佳出牌 """
@@ -240,7 +244,7 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
         nodes = tree_descend(tree, server, disp=debug_disp)
         print_nodes(nodes)
         i += 1
-        print(i," ",n)
+        print(i, " ", n)
         last_node = nodes[-1]
         if last_node.game_result is not None:
             # 计算最大得分
@@ -252,7 +256,6 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
         else:
             continue
         tree_update(nodes, max_cost, disp=debug_disp)
-
 
     return tree.best_move(True)
 
