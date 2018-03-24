@@ -7,6 +7,7 @@ from zigong_majiang.rule.hand.agari import Agari
 from zigong_majiang.rule.hand.hand_calculator import HandCalculator
 from zigong_majiang.ai.constant import constant
 import logging
+from zigong_majiang.log.logger import logger
 
 S0 = 10
 S1 = 6
@@ -119,6 +120,7 @@ class Attack:
         hand[tile] -= 1
         chains = ves_ai.calc_effective_cards(hand, 0)
         expect = 1
+        logger().info("Length of chains:{}".format(len(chains)))
         for chain in chains:
             # 计算每种胡牌链的期望
             expect_per_chain = 0.0
@@ -135,6 +137,7 @@ class Attack:
                 prob_pair /= constant.PLAYER_NUM
                 if prob_pair > 1:
                     prob_pair = 1
+
             for dh in chain.drawHands:
                 # 计算一个链种每种胡牌的期望
                 chain.hand[dh] += 1

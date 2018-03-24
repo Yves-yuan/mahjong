@@ -240,7 +240,8 @@ def tree_descend(tree: TreeNode, server, disp=False):
             child.touch(tile)
             nodes.append(child)
             # 扩展子树
-            child.expand()
+            if child.children is None:
+                child.expand()
 
     return nodes
 

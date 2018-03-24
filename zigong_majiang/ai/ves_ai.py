@@ -5,6 +5,7 @@ from zigong_majiang.rule.chain.judge_tile_chain import JudgeTileChain
 from zigong_majiang.rule.tile.tile_convert import TilesConverter
 from zigong_majiang.rule.chain.touch_play_pair import TouchPlayPair
 import logging
+from zigong_majiang.log.logger import logger
 
 
 class VesAI(object):
@@ -29,12 +30,15 @@ class VesAI(object):
         if count % 3 != 1:
             self.log.error("hands must be ready hand example:13 length or 7 length")
             return None
-        judge_tile_chains = self.calc_effective_cards_internal(tiles_18, n)
-        # for chain in judge_tile_chains:
-        #     print(chain)
+        judge_tile_chains = self.calc_effective_cards_internal(tiles_18, n,[],[])
+        logger().debug(TilesConverter.tiles_18_to_str(tiles_18))
+        for chain in judge_tile_chains:
+            logger().debug(chain)
         return judge_tile_chains
 
-    def calc_effective_cards_internal(self, tiles_18, n, judge_tile_chains=[], touch_play_pairs=[]):
+    def calc_effective_cards_internal(self, tiles_18, n, judge_tile_chains, touch_play_pairs):
+        if len(judge_tile_chains) > 5:
+            logger().debug("Length of judge chains before calculate:{}".format(len(judge_tile_chains)))
         draw_hands_cur = self.calc_draw_hands(tiles_18)
         if draw_hands_cur:
             judge_tile_chains.append(
