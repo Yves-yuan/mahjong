@@ -324,9 +324,9 @@ def print_nodes(nodes):
             first = False
             continue
         if node.touch_tile >= 0:
-            logger().info("player{} touch tile:{}".format(node.game_state.turn, node.touch_tile))
+            logger().info("player{} touch tile:{}".format(node.game_state.turn, Tile(node.touch_tile)))
         if node.discard_tile >= 0:
-            logger().info("player{} drop tile:{}".format((node.game_state.turn + 2) % 3, node.discard_tile))
+            logger().info("player{} drop tile:{}".format((node.game_state.turn + 2) % 3,Tile( node.discard_tile)))
         if node.game_result != 0:
             if node.reason == "zimo":
                 logger().info("player{} zimo. ".format(node.game_state.turn))

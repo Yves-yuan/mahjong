@@ -9,6 +9,7 @@ from zigong_majiang.simulator.game_result import GameResult
 
 def tiles_to_string(tiles):
     sort_tiles = sorted(tiles)
+
     tongzi = ""
     tiaozi = ""
     for tile in sort_tiles:

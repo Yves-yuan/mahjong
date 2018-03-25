@@ -1,6 +1,7 @@
 from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.monte_tree import TreeNode, tree_search, N_SIMS
 from zigong_majiang.log.logger import Logger
+from zigong_majiang.rule.tile.tile_convert import TilesConverter
 from zigong_majiang.simulator.client import Client
 from zigong_majiang.simulator.game_server import GameServer
 import logging
@@ -28,7 +29,8 @@ def test_monte():
     discards = [[], [], []]
     melds_3 = [[], [], []]
     melds_4 = [[], [], []]
-    log.info(hands)
+    for hand in hands:
+        log.info(TilesConverter.tiles_18_to_str(hand))
     game_state = GameState(hands=hands, discards=discards, melds_3=melds_3, melds_4=melds_4)
     game_state.check()
 
