@@ -63,3 +63,11 @@ class ScoresCalculator(object):
             base *= 4
         base *= 2 ** gang
         return base
+
+    @staticmethod
+    def calc_score_for_results(results):
+        max_cost = -1
+        for result in results:
+            if result.cost > max_cost:
+                max_cost = result.cost
+        return max_cost

@@ -120,7 +120,7 @@ class Attack:
         hand[tile] -= 1
         chains = ves_ai.calc_effective_cards(hand, 0)
         expect = 1
-        logger().info("Length of chains:{}".format(len(chains)))
+        logger().debug("Length of chains:{}".format(len(chains)))
         for chain in chains:
             # 计算每种胡牌链的期望
             expect_per_chain = 0.0
