@@ -220,24 +220,20 @@ def tree_descend(tree: TreeNode, server, disp=False):
         log.info("discard tile:{}".format(Tile(node.discard_tile)))
         # updating visits on the way *down* represents "virtual loss", relevant for parallelization
         node.v += 1
-        fangpao = False
-        fangpao_result = []
-        for index_fangpao in range(0, PLAYER_NUM - 1):
-            think_fangpao_index = node.game_state.get_next_turn(index_fangpao)
-            if Attack.think_fangpao(node.game_state, think_fangpao_index, node.discard_tile):
-                fangpao = True
-                hand_fangpao = node.game_state.hands_index(think_fangpao_index)
-                hand_fangpao[node.discard_tile] += 1
-                result_fangpao = HandCalculator.estimate_hand_value_zigong(hand_fangpao, node.discard_tile)
-                result_node = node.clone()
-                result_node.fangpao(node.game_state.get_next_turn(-1), think_fangpao_index,
-                                    result_fangpao)
-                fangpao_result.append(result_node)
-                logger().info(
-                    "fangpao===>player{} to player{}".format(node.game_state.get_next_turn(-1), think_fangpao_index))
-        if fangpao:
-            nodes.extend(fangpao_result)
+
+        # 放炮判断
+        fangpao_nodes = fangpao_check(node)
+        if len(fangpao_nodes) > 0:
+            nodes.extend(fangpao_nodes)
             return nodes
+
+        # 碰牌判断
+        peng_node = peng_check(node)
+        if peng_node is not None:
+            nodes.append(peng_node)
+            if peng_node.children is None:
+                peng_node.expand()
+            continue
 
         # 如果牌墙还有牌，那么就摸牌，扩展子树
         if len(server.tiles) > 0:
@@ -250,6 +246,27 @@ def tree_descend(tree: TreeNode, server, disp=False):
                 child.expand()
 
     return nodes
+
+
+def fangpao_check(node):
+    fangpao_result = []
+    for index_fangpao in range(0, PLAYER_NUM - 1):
+        think_fangpao_index = node.game_state.get_next_turn(index_fangpao)
+        if Attack.think_fangpao(node.game_state, think_fangpao_index, node.discard_tile):
+            hand_fangpao = node.game_state.hands_index(think_fangpao_index)
+            hand_fangpao[node.discard_tile] += 1
+            result_fangpao = HandCalculator.estimate_hand_value_zigong(hand_fangpao, node.discard_tile)
+            result_node = node.clone()
+            result_node.fangpao(node.game_state.get_next_turn(-1), think_fangpao_index,
+                                result_fangpao)
+            fangpao_result.append(result_node)
+            logger().info(
+                "fangpao===>player{} to player{}".format(node.game_state.get_next_turn(-1), think_fangpao_index))
+    return fangpao_result
+
+
+def peng_check(node):
+    return None
 
 
 def tree_update(nodes, disp=False):
