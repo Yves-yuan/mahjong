@@ -61,7 +61,7 @@ class Attack:
 
     @staticmethod
     def think_peng(game_state: GameState, index, tile):
-        num = game_state.get_remain(tile, index)
+        num = game_state.get_tile_num_of_hand(tile, index)
         if num < 2:
             return False
         sum_rp, sum_rpp = 0, 0

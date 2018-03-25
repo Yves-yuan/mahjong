@@ -57,6 +57,7 @@ class TreeNode:
         self.children = None
         self.touch_tile = -1
         self.discard_tile = -1
+        self.peng_tile = -1
         self.lose_index = -1
         self.win_index = -1
         self.reason = "dogfall"
@@ -70,6 +71,18 @@ class TreeNode:
     def zimo(self, result):
         self.game_result = result
         self.reason = "zimo"
+
+    def peng(self, index, tile):
+        # 碰牌的手牌扣除两张碰的牌
+        self.game_state.hands[index][tile] -= 2
+        # 捡起上次玩家丢弃的牌，加入碰的牌
+        self.game_state.discards[self.game_state.get_next_turn(-1)].pop()
+        # 记录节点碰牌
+        self.peng_tile = tile
+        # 记录牌局状态玩家{index}碰牌
+        self.game_state.melds_3[index].append(tile)
+        # 轮次变换，轮到碰牌的人出牌
+        self.game_state.turn = index
 
     def fangpao(self, lose_index, win_index, result):
         self.lose_index = lose_index
@@ -269,12 +282,21 @@ def fangpao_check(node):
 
 
 def peng_check(node):
-    for index_fangpao in range(0, PLAYER_NUM - 1):
-        think_fangpao_index = node.game_state.get_next_turn(index_fangpao)
+    """
+    判断是否碰牌，node为丢弃牌的节点
+    :param node:
+    :return:
+    """
+    if node.get_discard_tile() < 0:
+        logger().error("The node is not a discard node when checking peng.")
+        return None
+    for index in range(0, PLAYER_NUM - 1):
+        think_fangpao_index = node.game_state.get_next_turn(index)
         if Attack.think_peng(node.game_state, think_fangpao_index, node.get_discard_tile()):
             peng_node = node.clone()
-
-
+            peng_node.peng(think_fangpao_index, node.get_discard_tile())
+            logger().info("Player:{} peng tile:{}".format(think_fangpao_index,node.get_discard_tile()))
+            return peng_node
     return None
 
 

@@ -35,6 +35,9 @@ class GameState:
             count += discard.count(tile)
         return count
 
+    def get_tile_num_of_hand(self, tile, index):
+        return self.hands[index][tile]
+
     def get_remain(self, tile, index):
         in_hand = self.hands[index][tile]
         discard_num = self.get_discards(tile)
