@@ -6,6 +6,22 @@ from zigong_majiang.rule.hand.scores import ScoresCalculator
 
 class HandCalculator(object):
     @staticmethod
+    def calc_draw_hands(tiles_18):
+        """
+        计算听牌列表
+        :param tiles_18:
+        :return:
+        """
+        draw_hands = []
+        for card in range(0, 18):
+            if tiles_18[card] < 4:
+                tiles_18[card] += 1
+                if Agari.is_win_zigong(tiles_18):
+                    draw_hands.append(card)
+                tiles_18[card] -= 1
+        return draw_hands
+
+    @staticmethod
     def estimate_hand_value_zigong(tiles_18, win_tile):
         """
         it's a specific version of China SiChuan Zigong majhong.
