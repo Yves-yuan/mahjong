@@ -243,6 +243,14 @@ def tree_descend(tree: TreeNode, server, disp=False):
             nodes.extend(fangpao_nodes)
             return nodes
 
+        # 杠牌判断
+        gang_node = gang_check(node)
+        if gang_node is not None:
+            nodes.append(gang_node)
+            node = gang_node
+            touch_tile(server, node, nodes)
+            continue
+
         # 碰牌判断
         peng_node = peng_check(node)
         if peng_node is not None:
@@ -252,16 +260,21 @@ def tree_descend(tree: TreeNode, server, disp=False):
             continue
 
         # 如果牌墙还有牌，那么就摸牌，扩展子树
-        if len(server.tiles) > 0:
-            tile = server.tiles.pop(0)
-            child = node.clone()
-            child.touch(tile)
-            nodes.append(child)
-            # 扩展子树
-            if child.children is None:
-                child.expand()
+        touch_tile(server, node, nodes)
 
     return nodes
+
+
+def touch_tile(server, node, nodes):
+    # 如果牌墙还有牌，那么就摸牌，扩展子树
+    if len(server.tiles) > 0:
+        tile = server.tiles.pop(0)
+        child = node.clone()
+        child.touch(tile)
+        nodes.append(child)
+        # 扩展子树
+        if child.children is None:
+            child.expand()
 
 
 def fangpao_check(node):
@@ -281,6 +294,25 @@ def fangpao_check(node):
     return fangpao_result
 
 
+def gang_check(node):
+    """
+    杠牌判断，判断是否杠牌，node为丢弃牌的节点
+    :param node:
+    :return:
+    """
+    # if node.get_discard_tile() < 0:
+    #     logger().error("The node is not a discard node when checking peng.")
+    #     return None
+    # for index in range(0, PLAYER_NUM - 1):
+    #     think_gang_index = node.game_state.get_next_turn(index)
+    #     if Attack.think_peng(node.game_state, think_gang_index, node.get_discard_tile()):
+    #         peng_node = node.clone()
+    #         peng_node.peng(think_gang_index, node.get_discard_tile())
+    #         logger().info("Player:{} peng tile:{}".format(think_gang_index, node.get_discard_tile()))
+    #         return peng_node
+    return None
+
+
 def peng_check(node):
     """
     判断是否碰牌，node为丢弃牌的节点
@@ -291,11 +323,11 @@ def peng_check(node):
         logger().error("The node is not a discard node when checking peng.")
         return None
     for index in range(0, PLAYER_NUM - 1):
-        think_fangpao_index = node.game_state.get_next_turn(index)
-        if Attack.think_peng(node.game_state, think_fangpao_index, node.get_discard_tile()):
+        think_peng_index = node.game_state.get_next_turn(index)
+        if Attack.think_peng(node.game_state, think_peng_index, node.get_discard_tile()):
             peng_node = node.clone()
-            peng_node.peng(think_fangpao_index, node.get_discard_tile())
-            logger().info("Player:{} peng tile:{}".format(think_fangpao_index,node.get_discard_tile()))
+            peng_node.peng(think_peng_index, node.get_discard_tile())
+            logger().info("Player:{} peng tile:{}".format(think_peng_index, node.get_discard_tile()))
             return peng_node
     return None
 
