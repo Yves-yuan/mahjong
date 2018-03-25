@@ -61,6 +61,9 @@ class TreeNode:
         self.win_index = -1
         self.reason = "dogfall"
 
+    def get_discard_tile(self):
+        return self.discard_tile
+
     def get_turn(self):
         return self.game_state.turn
 
@@ -266,6 +269,12 @@ def fangpao_check(node):
 
 
 def peng_check(node):
+    for index_fangpao in range(0, PLAYER_NUM - 1):
+        think_fangpao_index = node.game_state.get_next_turn(index_fangpao)
+        if Attack.think_peng(node.game_state, think_fangpao_index, node.get_discard_tile()):
+            peng_node = node.clone()
+
+
     return None
 
 
@@ -326,7 +335,7 @@ def print_nodes(nodes):
         if node.touch_tile >= 0:
             logger().info("player{} touch tile:{}".format(node.game_state.turn, Tile(node.touch_tile)))
         if node.discard_tile >= 0:
-            logger().info("player{} drop tile:{}".format((node.game_state.turn + 2) % 3,Tile( node.discard_tile)))
+            logger().info("player{} drop tile:{}".format((node.game_state.turn + 2) % 3, Tile(node.discard_tile)))
         if node.game_result != 0:
             if node.reason == "zimo":
                 logger().info("player{} zimo. ".format(node.game_state.turn))

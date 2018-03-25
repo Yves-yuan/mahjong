@@ -100,7 +100,7 @@ class Attack:
         log.debug("The expectations{}".format(expect_prob))
         tile_weights = []
         for t in range(0, 18):
-            p_t = Attack.rp_t(t, game_state)
+            p_t = Attack.rp_t1(t, game_state.turn, game_state)
             if p_t > 0:
                 tile_weights.append(p_t)
         probability = np.array(Attack.weights2_probability(tile_weights))
@@ -188,6 +188,7 @@ class Attack:
     def rp_t1(t, index, game_state):
         """
         计算邻近的牌的个数和权重，权重越高邻近的牌越多
+        :param index: 计算玩家{index}的t牌邻近权重
         :param t:牌值
         :param game_state:牌局
         :return: 返回邻近牌的权重,邻近牌越多权重越高,如果手牌中没有该牌返回0
@@ -200,37 +201,12 @@ class Attack:
             kn_0 = Attack.tile_remain_num(t, game_state)
             # 计算相邻的牌的个数
             for t1 in Attack.get_first_level_ts(t):
-                sn_1 += s.hands[s.turn][t1]
+                sn_1 += s.hands[index][t1]
                 kn_1 += Attack.tile_remain_num(t1, game_state)
             # 计算相隔一张牌的个数
             for t2 in Attack.get_second_level_ts(t):
-                sn_2 += s.hands[s.turn][t2]
+                sn_2 += s.hands[index][t2]
                 kn_2 += Attack.tile_remain_num(t2, game_state)
             p_t = sn_0 * S0 + (sn_1 * S1) + (sn_2 * S2) + kn_0 * K0 + (kn_1 * K1) + (
-                kn_2 * K2)
-        return p_t
-
-    def rp_t(t, game_state):
-        """
-        计算邻近的牌的个数和权重，权重越高邻近的牌越多
-        :param t:牌值
-        :param game_state:牌局
-        :return: 返回邻近牌的权重,邻近牌越多权重越高,如果手牌中没有该牌返回0
-        """
-        s = game_state
-        p_t = 0
-        sn_0 = s.hands[s.turn][t]
-        if sn_0:
-            sn_1, sn_2, kn_0, kn_1, kn_2 = 0, 0, 0, 0, 0
-            kn_0 = Attack.tile_remain_num(t, game_state)
-            # 计算相邻的牌的个数
-            for t1 in Attack.get_first_level_ts(t):
-                sn_1 += s.hands[s.turn][t1]
-                kn_1 += Attack.tile_remain_num(t1, game_state)
-            # 计算相隔一张牌的个数
-            for t2 in Attack.get_second_level_ts(t):
-                sn_2 += s.hands[s.turn][t2]
-                kn_2 += Attack.tile_remain_num(t2, game_state)
-            p_t = sn_0 * S0 + (sn_1 * S1) + (sn_2 * S2) + kn_0 * K0 + (kn_1 * K1) + (
-                kn_2 * K2)
+                    kn_2 * K2)
         return p_t
