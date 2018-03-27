@@ -48,6 +48,7 @@ class TreeNode:
         self.game_state = game_state
         self.game_result = None
         self.attack_drop_p = 0
+        self.peng_probability = 0
         self.v = 0
         self.w = 0
         self.pv = 0
@@ -58,9 +59,11 @@ class TreeNode:
         self.touch_tile = -1
         self.discard_tile = -1
         self.peng_tile = -1
+        self.peng_index = -1
         self.lose_index = -1
         self.win_index = -1
         self.reason = "dogfall"
+        self.pass_p = -1
 
     def get_discard_tile(self):
         return self.discard_tile
@@ -72,17 +75,23 @@ class TreeNode:
         self.game_result = result
         self.reason = "zimo"
 
-    def peng(self, index, tile):
+    def pass_peng(self, index):
+        self.pass_p = index
+
+    def peng(self, index, peng_tile, discard_tile):
         # 碰牌的手牌扣除两张碰的牌
-        self.game_state.hands[index][tile] -= 2
+        self.game_state.hands[index][peng_tile] -= 2
+        self.game_state.hands[index][discard_tile] -= 1
+        self.discard_tile = discard_tile
         # 捡起上次玩家丢弃的牌，加入碰的牌
         self.game_state.discards[self.game_state.get_next_turn(-1)].pop()
         # 记录节点碰牌
-        self.peng_tile = tile
+        self.peng_tile = peng_tile
+        self.peng_index = index
         # 记录牌局状态玩家{index}碰牌
-        self.game_state.melds_3[index].append(tile)
+        self.game_state.melds_3[index].append(peng_tile)
         # 轮次变换，轮到碰牌的人出牌
-        self.game_state.turn = index
+        self.game_state.turn = (index + 1) % 3
 
     def fangpao(self, lose_index, win_index, result):
         self.lose_index = lose_index
@@ -92,6 +101,9 @@ class TreeNode:
 
     def set_attack_drop_p(self, p):
         self.attack_drop_p = p
+
+    def set_peng_probability(self, p):
+        self.peng_probability = p
 
     def clone(self):
         node = TreeNode(None, self.game_state.clone())
@@ -104,6 +116,31 @@ class TreeNode:
     def discard(self, tile):
         self.game_state.discard(tile)
         self.discard_tile = tile
+
+    def expand_peng(self, index, peng_tile):
+        """扩展碰牌子节点"""
+        hand = self.game_state.hands[index]
+        # 碰牌子节点
+        self.children = []
+        for t in range(0, len(hand)):
+            if t != peng_tile:
+                if hand[t] <= 0:
+                    continue
+            else:
+                if hand[t] <= 2:
+                    continue
+            node = self.clone()
+            node.peng(index, peng_tile, t)
+            value = UNIFORM_DISTRIBUTION[t]
+            node.pv = PRIOR_NET
+            node.pw = PRIOR_NET * value
+            node.game_state.turn = (index + 1) % 3
+            self.children.append(node)
+        node = self.clone()
+        node.pass_peng(index)
+        node.pv = PRIOR_NET
+        node.pw = PRIOR_NET * value
+        self.children.append(node)
 
     def expand(self):
         """ add and initialize children to a leaf node """
@@ -189,6 +226,9 @@ def global_puct_urgency(n0, w, v, pw, pv):
     return expectation + PUCT_C * prior * math.sqrt(n0) / (1 + v)
 
 
+log = logging.getLogger("mahjong")
+
+
 def tree_descend(tree: TreeNode, server, disp=False):
     """ Descend through the tree to a leaf """
     """ 蒙特卡洛模拟打麻将，每一个节点代表打牌后的牌面,结束条件是有人和牌或者牌被摸完 """
@@ -196,7 +236,6 @@ def tree_descend(tree: TreeNode, server, disp=False):
     root = True
     tree.v += 1
     nodes = [tree]
-    index = 0
     log = logging.getLogger("mahjong")
     # Initialize root node
     # 每个节点代表自己或对手打牌后的牌面
@@ -252,13 +291,11 @@ def tree_descend(tree: TreeNode, server, disp=False):
             continue
 
         # 碰牌判断
-        peng_node = peng_check(node)
+        peng_node = peng_check(node, root)
         if peng_node is not None:
             nodes.append(peng_node)
-            if peng_node.children is None:
-                peng_node.expand()
-            continue
 
+        node = nodes[-1]
         # 如果牌墙还有牌，那么就摸牌，扩展子树
         touch_tile(server, node, nodes)
 
@@ -313,7 +350,7 @@ def gang_check(node):
     return None
 
 
-def peng_check(node):
+def peng_check(node, root):
     """
     判断是否碰牌，node为丢弃牌的节点
     :param node:
@@ -324,11 +361,25 @@ def peng_check(node):
         return None
     for index in range(0, PLAYER_NUM - 1):
         think_peng_index = node.game_state.get_next_turn(index)
-        if Attack.think_peng(node.game_state, think_peng_index, node.get_discard_tile()):
-            peng_node = node.clone()
-            peng_node.peng(think_peng_index, node.get_discard_tile())
-            logger().info("Player:{} peng tile:{}".format(think_peng_index, node.get_discard_tile()))
-            return peng_node
+        if not Attack.think_peng(node, node.game_state, think_peng_index, node.get_discard_tile()):
+            continue
+        random.shuffle(node.children)  # randomize the max in case of equal urgency
+
+        urgencies = global_puct_urgency(node.v, *puct_urgency_input(node.children))
+        attack_probabilitys_np = np.array([n.attack_drop_p for n in node.children])
+        if root:
+            dirichlet = np.random.dirichlet((0.03, 1), len(node.children))
+            urgencies = urgencies * 0.5 + dirichlet[:, 0] * 0.25 + attack_probabilitys_np * 0.25
+            root = False
+        urgencies = urgencies * 0.7 + attack_probabilitys_np * 0.3
+        log.debug("urgencies:{}".format(urgencies))
+        node = max(zip(node.children, urgencies), key=lambda t: t[1])[0]
+        if node.peng_tile > 0:
+            log.info("Player:{} peng tile:{}".format(node.peng_index, Tile(node.peng_tile)))
+        else:
+            log.info("Player:{} pass peng".format(node.pass_p))
+        node.v += 1
+        return node
     return None
 
 
@@ -390,6 +441,11 @@ def print_nodes(nodes):
             logger().info("player{} touch tile:{}".format(node.game_state.turn, Tile(node.touch_tile)))
         if node.discard_tile >= 0:
             logger().info("player{} drop tile:{}".format((node.game_state.turn + 2) % 3, Tile(node.discard_tile)))
+        if node.peng_tile >= 0:
+            logger().info("player{} peng tile:{}".format(node.peng_index, Tile(node.peng_tile)))
+        if node.pass_p > 0:
+            logger().info("player{} pass peng".format(node.pass_p))
+
         if node.game_result != 0:
             if node.reason == "zimo":
                 logger().info("player{} zimo. ".format(node.game_state.turn))

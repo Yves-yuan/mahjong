@@ -8,6 +8,8 @@ from zigong_majiang.rule.hand.hand_calculator import HandCalculator
 from zigong_majiang.ai.constant import constant
 import logging
 from zigong_majiang.log.logger import logger
+from zigong_majiang.rule.tile.tile_convert import TilesConverter
+from zigong_majiang.rule.utils import check_ready_to_win, check_ready_to_touch
 
 S0 = 10
 S1 = 6
@@ -32,9 +34,9 @@ class Attack:
         self.k2 = k2
 
     @staticmethod
-    def tile_remain_num(tile, game_state):
+    def tile_remain_num(tile, game_state, index):
         s = game_state
-        return 4 - s.hands[s.turn][tile] - s.get_discards(tile)
+        return 4 - s.hands[index][tile] - s.get_discards(tile)
 
     @staticmethod
     def get_first_level_ts(t):
@@ -60,20 +62,36 @@ class Attack:
         return None
 
     @staticmethod
-    def think_peng(game_state: GameState, index, tile):
+    def think_peng(node, game_state: GameState, index, tile):
         num = game_state.get_tile_num_of_hand(tile, index)
         if num < 2:
             return False
-        sum_rp, sum_rpp = 0, 0
-        for t in range(0, 18):
-            sum_rp += Attack.rp_t1(t, index, game_state)
-        game_state.hands[index][tile] -= 2
-        for t in range(0, 18):
-            sum_rpp += Attack.rp_t1(t, index, game_state)
-        sum_rpp += 3 * S0
-        game_state.hands[index][tile] += 2
+        tree = node
+        node.expand_peng(index, tile)
 
-        return sum_rpp >= sum_rp
+        # 计算邻近度概率
+        rps = []
+        for node in tree.children:
+            sum = 0
+            for t in range(0, 18):
+                sum += Attack.rp_t1(t, index, node.game_state)
+            rps.append(sum)
+        peng_rps_probability = np.array(Attack.weights2_probability(rps))
+
+        # 计算期望值概率
+        expects = []
+        for node in tree.children:
+            expect = Attack.think_expectation(node.game_state, index)
+            expects.append(expect)
+
+        expect_prob = np.array(Attack.expects2_probability(expects))
+
+        # 设置节点综合打牌概率
+        final = expect_prob * 0.6 + peng_rps_probability * 0.4
+        for i in range(0, len(tree.children)):
+            tree.children[i].set_peng_probability(final[i])
+
+        return True
 
     @staticmethod
     def think_fangpao(game_state: GameState, index, tile):
@@ -93,7 +111,7 @@ class Attack:
         log = logging.getLogger("mahjong")
         expects = []
         for t in range(0, 18):
-            expect = Attack.think_expectation(t, game_state)
+            expect = Attack.think_expectation_forplay(t, game_state)
             if expect >= 0:
                 expects.append(expect)
         expect_prob = np.array(Attack.expects2_probability(expects))
@@ -110,14 +128,18 @@ class Attack:
         return final
 
     @staticmethod
-    def think_expectation(tile, game_state: GameState):
-        hand = copy.deepcopy(game_state.hands[game_state.turn])
-        if hand[tile] < 0:
-            print("error:tile num < 0")
+    def think_expectation(game_state: GameState, index):
+        """
+        计算玩家index的手牌胡牌期望,要求手牌数目是%3 == 1
+        :param game_state:
+        :param index:
+        :return:
+        """
+        check = check_ready_to_touch(game_state.hands[index])
+        if check == False:
+            logger().error("hand length is not ready to touch")
             return -1
-        if hand[tile] == 0:
-            return -1
-        hand[tile] -= 1
+        hand = copy.deepcopy(game_state.hands[index])
         chains = ves_ai.calc_effective_cards(hand, 0)
         expect = 1
         logger().debug("Length of chains:{}".format(len(chains)))
@@ -132,7 +154,7 @@ class Attack:
 
             for pair in pairs:
                 need = pair.touch_tile()
-                remain = game_state.get_remain(need, game_state.turn)
+                remain = game_state.get_remain(need, index)
                 prob_pair *= remain
                 prob_pair /= constant.PLAYER_NUM
                 if prob_pair > 1:
@@ -143,12 +165,34 @@ class Attack:
                 chain.hand[dh] += 1
                 cost = HandCalculator.estimate_max_score(chain.hand, dh)
                 chain.hand[dh] -= 1
-                remain_dh = game_state.get_remain(dh, game_state.turn)
+                remain_dh = game_state.get_remain(dh, index)
                 prob_dh = remain_dh / constant.PLAYER_NUM
                 if prob_dh > 1:
                     prob_dh = 1
                 expect_per_chain += prob_pair * prob_dh * cost * weight
             expect += expect_per_chain
+        return expect
+
+    @staticmethod
+    def think_expectation_forplay(tile, game_state: GameState):
+        """
+        在需要打牌的时候计算打牌期望，手牌是14张
+        :param tile:
+        :param game_state:
+        :return:
+        """
+        check = check_ready_to_win(game_state.hands[game_state.turn])
+        if check == False:
+            logger().error("Error:hand number is not right.")
+            return -1
+        if game_state.hands[game_state.turn][tile] < 0:
+            print("error:tile num < 0")
+            return -1
+        if game_state.hands[game_state.turn][tile] == 0:
+            return -1
+        game_state.hands[game_state.turn][tile] -= 1
+        expect = Attack.think_expectation(game_state, game_state.turn)
+        game_state.hands[game_state.turn][tile] += 1
         return expect
 
     @staticmethod
@@ -198,15 +242,16 @@ class Attack:
         sn_0 = s.hands[index][t]
         if sn_0:
             sn_1, sn_2, kn_0, kn_1, kn_2 = 0, 0, 0, 0, 0
-            kn_0 = Attack.tile_remain_num(t, game_state)
+            kn_0 = Attack.tile_remain_num(t, game_state, index)
             # 计算相邻的牌的个数
             for t1 in Attack.get_first_level_ts(t):
                 sn_1 += s.hands[index][t1]
-                kn_1 += Attack.tile_remain_num(t1, game_state)
+                kn_1 += Attack.tile_remain_num(t1, game_state, index)
             # 计算相隔一张牌的个数
             for t2 in Attack.get_second_level_ts(t):
                 sn_2 += s.hands[index][t2]
-                kn_2 += Attack.tile_remain_num(t2, game_state)
+                kn_2 += Attack.tile_remain_num(t2, game_state, index)
             p_t = sn_0 * S0 + (sn_1 * S1) + (sn_2 * S2) + kn_0 * K0 + (kn_1 * K1) + (
                     kn_2 * K2)
+        p_t /= TilesConverter.tiles18_count(s.hands[index])
         return p_t

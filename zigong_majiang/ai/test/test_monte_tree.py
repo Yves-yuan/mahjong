@@ -1,6 +1,7 @@
 from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.monte_tree import TreeNode, tree_search, N_SIMS
 from zigong_majiang.log.logger import Logger
+from zigong_majiang.rule.tile.tile import Tile
 from zigong_majiang.rule.tile.tile_convert import TilesConverter
 from zigong_majiang.simulator.client import Client
 from zigong_majiang.simulator.game_server import GameServer
@@ -37,7 +38,8 @@ def test_monte():
     tree_node = TreeNode(net=None, game_state=game_state)
 
     node = tree_search(tree_node, N_SIMS, server)
-    print(node.touch_tile, node.discard_tile)
+    log.info("The result of monte tree search is :touch tile {} for given hand {}".
+             format(Tile(node.discard_tile),TilesConverter.tiles_18_to_str(hands[0])))
 
 
 cProfile.run("test_monte()")
