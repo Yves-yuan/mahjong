@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 import math
-
+from enum import Enum
 from zigong_majiang.ai.constant.constant import const
 from zigong_majiang.ai.game_state import GameState
 from zigong_majiang.ai.pure_attack.attack import Attack
@@ -229,20 +229,72 @@ def global_puct_urgency(n0, w, v, pw, pv):
 log = logging.getLogger("mahjong")
 
 
-def tree_descend(tree: TreeNode, server, disp=False):
+class MahjongState(Enum):
+    Discarding = 1
+    Penging = 2
+    Ganging = 3
+    Huing = 4
+    Fangpaoing = 5
+    Touching = 6
+    Over = 7
+
+
+switcher = {
+    MahjongState.Discarding: lambda: discarding,
+    MahjongState.Penging: lambda: penging,
+    MahjongState.Ganging: lambda: ganging,
+    MahjongState.Huing: lambda: huing,
+    MahjongState.Fangpaoing: lambda: fangpaoing,
+    MahjongState.Touching: lambda: touching,
+    MahjongState.Over: lambda: touching,
+}
+
+
+def discarding(root,tree,nodes):
+    tree.v += 1
+    tree.expand()
+    log.info("Tree descend,it's player:{}'s turn,touched:{} ,hands:{}".format(tree.get_turn(),
+                                                                                  Tile(tree.touch_tile),
+                                                                                  tree.game_state.get_cur_hands_str()))
+    return "11"
+
+
+def fangpaoing(root,tree,nodes):
+    return
+
+
+def huing(root,tree,nodes):
+    return
+
+
+def ganging(root,tree,nodes):
+    return
+
+
+def penging(root,tree,nodes):
+    return
+
+
+def touching(root,tree,nodes):
+    return
+
+def tree_descend(tree: TreeNode, server, state:MahjongState):
     """ Descend through the tree to a leaf """
     """ 蒙特卡洛模拟打麻将，每一个节点代表打牌后的牌面,结束条件是有人和牌或者牌被摸完 """
     """ 目前采取随机打牌的策略 """
     root = True
     tree.v += 1
     nodes = [tree]
-    log = logging.getLogger("mahjong")
     # Initialize root node
     # 每个节点代表自己或对手打牌后的牌面
     if tree.children is None:
         tree.expand()
-
-    while nodes[-1].children is not None:
+    func = switcher.get(state)()
+    state = func(root,tree)
+    while state is not MahjongState.Over:
+        func = switcher.get(state)()
+        state = func(root,tree,nodes)
+        tree = nodes[-1]
         # 如果已经和牌，直接退出
         tree = nodes[-1]
         log.info("Tree descend,it's player:{}'s turn,touched:{} ,hands:{}".format(tree.get_turn(),
