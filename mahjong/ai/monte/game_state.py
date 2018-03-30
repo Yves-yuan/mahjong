@@ -1,7 +1,7 @@
 import copy
 
-from zigong_majiang.rule.hand.hand_calculator import HandCalculator
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
+from mahjong.rule.algo.hand_calculator import HandCalculator
+from mahjong.rule.util.tile_convert import TilesConv
 
 
 class GameState:
@@ -27,7 +27,10 @@ class GameState:
         return (self.turn + n) % 3
 
     def get_cur_hands_str(self):
-        return TilesConverter.tiles_18_to_str(self.hands[self.turn])
+        return TilesConv.tiles_18_to_str(self.hands[self.turn])
+
+    def get_hands_str_index(self, index):
+        return TilesConv.tiles_18_to_str(self.hands[index])
 
     def get_discards(self, tile):
         count = 0

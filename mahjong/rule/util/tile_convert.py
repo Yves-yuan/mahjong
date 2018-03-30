@@ -1,4 +1,4 @@
-class TilesConverter(object):
+class TilesConv(object):
     @staticmethod
     def array_72_to_18(tiles_72):
         """
@@ -42,7 +42,7 @@ class TilesConverter(object):
 
     @staticmethod
     def string_to_18_array(tongzi=None, tiaozi=None):
-        return TilesConverter.array_72_to_18(TilesConverter.string_to_72_array(tongzi, tiaozi))
+        return TilesConv.array_72_to_18(TilesConv.string_to_72_array(tongzi, tiaozi))
 
     @staticmethod
     def tiles_18_to_str(tiles_18):

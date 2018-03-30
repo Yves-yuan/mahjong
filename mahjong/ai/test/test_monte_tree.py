@@ -1,10 +1,10 @@
-from zigong_majiang.ai.game_state import GameState
-from zigong_majiang.ai.monte_tree import TreeNode, tree_search, N_SIMS
-from zigong_majiang.log.logger import Logger
-from zigong_majiang.rule.tile.tile import Tile
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
-from zigong_majiang.simulator.client import Client
-from zigong_majiang.simulator.game_server import GameServer
+from mahjong.ai.monte.game_state import GameState
+from mahjong.ai.monte.monte_tree import TreeNode, tree_search, N_SIMS
+from mahjong.log.logger import Logger
+from mahjong.rule.model.tile import Tile
+from mahjong.rule.util.tile_convert import TilesConv
+from mahjong.simulator.client import Client
+from mahjong.simulator.game_server import GameServer
 import logging
 import cProfile
 
@@ -31,7 +31,7 @@ def test_monte():
     melds_3 = [[], [], []]
     melds_4 = [[], [], []]
     for hand in hands:
-        log.info(TilesConverter.tiles_18_to_str(hand))
+        log.info(TilesConv.tiles_18_to_str(hand))
     game_state = GameState(hands=hands, discards=discards, melds_3=melds_3, melds_4=melds_4)
     game_state.check()
 
@@ -39,7 +39,7 @@ def test_monte():
 
     node = tree_search(tree_node, N_SIMS, server)
     log.info("The result of monte tree search is :touch tile {} for given hand {}".
-             format(Tile(node.discard_tile),TilesConverter.tiles_18_to_str(hands[0])))
+             format(Tile(node.discard_tile), TilesConv.tiles_18_to_str(hands[0])))
 
 
 cProfile.run("test_monte()")

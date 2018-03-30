@@ -1,15 +1,15 @@
 import numpy as np
 import copy
 
-from zigong_majiang.ai.game_state import GameState
-from zigong_majiang.ai.ves_ai import VesAI
-from zigong_majiang.rule.hand.agari import Agari
-from zigong_majiang.rule.hand.hand_calculator import HandCalculator
-from zigong_majiang.ai.constant import constant
+from mahjong.ai.monte.game_state import GameState
+from mahjong.rule.algo.judge_chain_maker import JudgeChainMaker
+from mahjong.rule.algo.winchecker import WinChecker
+from mahjong.rule.algo.hand_calculator import HandCalculator
+from mahjong.ai.constant import constant
 import logging
-from zigong_majiang.log.logger import logger
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
-from zigong_majiang.rule.utils import check_ready_to_win, check_ready_to_touch
+from mahjong.log.logger import logger
+from mahjong.rule.util.tile_convert import TilesConv
+from mahjong.rule.util.utils import check_ready_to_win, check_ready_to_touch
 
 S0 = 10
 S1 = 6
@@ -18,7 +18,7 @@ K0 = 2
 K1 = 1
 K2 = 1
 
-ves_ai = VesAI(1)
+ves_ai = JudgeChainMaker(1)
 
 WEIGHT_FITST = 18
 WEIGHT_SECOND = 1
@@ -67,7 +67,8 @@ class Attack:
         if num < 2:
             return False
         tree = node
-        node.expand_peng(index, tile)
+        if tree.children is None:
+            tree.expand_peng(index, tile)
 
         # 计算邻近度概率
         rps = []
@@ -97,7 +98,7 @@ class Attack:
     def think_fangpao(game_state: GameState, index, tile):
         hand = game_state.hands[index]
         hand[tile] += 1
-        result = Agari.is_win_zigong(hand)
+        result = WinChecker.is_win(hand)
         hand[tile] -= 1
         return result
 
@@ -253,5 +254,5 @@ class Attack:
                 kn_2 += Attack.tile_remain_num(t2, game_state, index)
             p_t = sn_0 * S0 + (sn_1 * S1) + (sn_2 * S2) + kn_0 * K0 + (kn_1 * K1) + (
                     kn_2 * K2)
-        p_t /= TilesConverter.tiles18_count(s.hands[index])
+        p_t /= TilesConv.tiles18_count(s.hands[index])
         return p_t

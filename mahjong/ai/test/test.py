@@ -1,8 +1,8 @@
 import pymysql
 import sys
 
-from zigong_majiang.ai.comb.perm_comb import PermCombGenerator
-from zigong_majiang.ai.ves_ai import VesAI
+from mahjong.ai.comb.perm_comb import PermCombGenerator
+from mahjong.rule.algo.judge_chain_maker import JudgeChainMaker
 
 Tiles = [0, 0, 0, 0,
          1, 1, 1, 1,
@@ -36,7 +36,7 @@ raw_sql = """INSERT INTO comb_chain(hands_comb,
          search_chain)
          VALUES ('{0}', '')
          ON DUPLICATE KEY UPDATE search_chain = ''"""
-ves = VesAI(2)
+ves = JudgeChainMaker(2)
 comb_gen = PermCombGenerator(Tiles, 13, end_point=2)
 comb = comb_gen.next()
 while comb is not None:

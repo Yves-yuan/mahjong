@@ -1,4 +1,4 @@
-from zigong_majiang.rule.tile.tile import Tile
+from mahjong.rule.model.tile import Tile
 
 
 class JudgeTileChain(object):

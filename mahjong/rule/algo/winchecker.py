@@ -1,10 +1,10 @@
 import copy
-from zigong_majiang.rule.utils import check_ready_to_win
+from mahjong.rule.util.utils import check_ready_to_win
 
 
-class Agari(object):
+class WinChecker(object):
     @staticmethod
-    def is_win_zigong(tiles_18):
+    def is_win(tiles_18):
         """
         tiles_18'length must be ready to win for example:14
         :param tiles_18:
@@ -35,41 +35,41 @@ class Agari(object):
             return False
 
         nn0 = (n00 * 1 + n01 * 2) % 3
-        m0 = Agari._to_meld(tiles, 0)
+        m0 = WinChecker._to_meld(tiles, 0)
         nn1 = (n10 * 1 + n11 * 2) % 3
-        m1 = Agari._to_meld(tiles, 9)
+        m1 = WinChecker._to_meld(tiles, 9)
 
         if n0 == 2:
-            return not (n1 | nn1) and Agari._is_mentsu(m1) \
-                   and Agari._is_atama_mentsu(nn0, m0)
+            return not (n1 | nn1) and WinChecker._is_mentsu(m1) \
+                   and WinChecker._is_atama_mentsu(nn0, m0)
 
         if n1 == 2:
-            return not (n0 | nn0) and Agari._is_mentsu(m0) \
-                   and Agari._is_atama_mentsu(nn1, m1)
+            return not (n0 | nn0) and WinChecker._is_mentsu(m0) \
+                   and WinChecker._is_atama_mentsu(nn1, m1)
         return False
 
     @staticmethod
     def _is_atama_mentsu(nn, m):
         if nn == 0:
-            if (m & (7 << 6)) >= (2 << 6) and Agari._is_mentsu(m - (2 << 6)):
+            if (m & (7 << 6)) >= (2 << 6) and WinChecker._is_mentsu(m - (2 << 6)):
                 return True
-            if (m & (7 << 15)) >= (2 << 15) and Agari._is_mentsu(m - (2 << 15)):
+            if (m & (7 << 15)) >= (2 << 15) and WinChecker._is_mentsu(m - (2 << 15)):
                 return True
-            if (m & (7 << 24)) >= (2 << 24) and Agari._is_mentsu(m - (2 << 24)):
+            if (m & (7 << 24)) >= (2 << 24) and WinChecker._is_mentsu(m - (2 << 24)):
                 return True
         elif nn == 1:
-            if (m & (7 << 3)) >= (2 << 3) and Agari._is_mentsu(m - (2 << 3)):
+            if (m & (7 << 3)) >= (2 << 3) and WinChecker._is_mentsu(m - (2 << 3)):
                 return True
-            if (m & (7 << 12)) >= (2 << 12) and Agari._is_mentsu(m - (2 << 12)):
+            if (m & (7 << 12)) >= (2 << 12) and WinChecker._is_mentsu(m - (2 << 12)):
                 return True
-            if (m & (7 << 21)) >= (2 << 21) and Agari._is_mentsu(m - (2 << 21)):
+            if (m & (7 << 21)) >= (2 << 21) and WinChecker._is_mentsu(m - (2 << 21)):
                 return True
         elif nn == 2:
-            if (m & (7 << 0)) >= (2 << 0) and Agari._is_mentsu(m - (2 << 0)):
+            if (m & (7 << 0)) >= (2 << 0) and WinChecker._is_mentsu(m - (2 << 0)):
                 return True
-            if (m & (7 << 9)) >= (2 << 9) and Agari._is_mentsu(m - (2 << 9)):
+            if (m & (7 << 9)) >= (2 << 9) and WinChecker._is_mentsu(m - (2 << 9)):
                 return True
-            if (m & (7 << 18)) >= (2 << 18) and Agari._is_mentsu(m - (2 << 18)):
+            if (m & (7 << 18)) >= (2 << 18) and WinChecker._is_mentsu(m - (2 << 18)):
                 return True
         return False
 

@@ -1,6 +1,6 @@
-from zigong_majiang.rule.hand.hand_calculator import HandCalculator
+from mahjong.rule.algo.hand_calculator import HandCalculator
 
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
+from mahjong.rule.util.tile_convert import TilesConv
 
 
 # useful helper
@@ -10,7 +10,7 @@ def print_hand_result(hand_results):
         print('')
 
 
-tiles_18 = TilesConverter.string_to_18_array(tongzi='111123', tiaozi='55667788')
+tiles_18 = TilesConv.string_to_18_array(tongzi='111123', tiaozi='55667788')
 results = HandCalculator.estimate_hand_value_zigong(tiles_18, 5)
 print_hand_result(results)
 

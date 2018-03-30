@@ -1,28 +1,28 @@
 import copy
 
-from zigong_majiang.rule.hand.agari import Agari
-from zigong_majiang.rule.chain.judge_tile_chain import JudgeTileChain
-from zigong_majiang.rule.hand.hand_calculator import HandCalculator
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
-from zigong_majiang.rule.chain.touch_play_pair import TouchPlayPair
+from mahjong.rule.algo.winchecker import WinChecker
+from mahjong.rule.model.judge_tile_chain import JudgeTileChain
+from mahjong.rule.algo.hand_calculator import HandCalculator
+from mahjong.rule.util.tile_convert import TilesConv
+from mahjong.rule.model.touch_play_pair import TouchPlayPair
 import logging
-from zigong_majiang.log.logger import logger
+from mahjong.log.logger import logger
 
 
-class VesAI(object):
+class JudgeChainMaker(object):
 
     def __init__(self, n):
         self.n = n
-        self.agari = Agari()
+        self.wc = WinChecker()
         self.log = logging.getLogger("mahjong")
 
     def calc_effective_cards(self, tiles_18, n):
-        count = TilesConverter.tiles18_count(tiles_18)
+        count = TilesConv.tiles18_count(tiles_18)
         if count % 3 != 1:
             self.log.error("hands must be ready hand example:13 length or 7 length")
             return None
         judge_tile_chains = self.calc_effective_cards_internal(tiles_18, n, [], [])
-        logger().debug(TilesConverter.tiles_18_to_str(tiles_18))
+        logger().debug(TilesConv.tiles_18_to_str(tiles_18))
         for chain in judge_tile_chains:
             logger().debug(chain)
         return judge_tile_chains

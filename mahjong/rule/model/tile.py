@@ -1,4 +1,4 @@
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
+from mahjong.rule.util.tile_convert import TilesConv
 
 
 class Tile(object):
@@ -6,7 +6,7 @@ class Tile(object):
         self.tile = tile
 
     def __str__(self):
-        return TilesConverter.tile_to_string(self.tile)
+        return TilesConv.tile_to_string(self.tile)
 
 
 class Hands(object):

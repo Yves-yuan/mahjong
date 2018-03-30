@@ -1,4 +1,4 @@
-class HandResponseZigong(object):
+class HandCost(object):
     cost = None
     hand = None
 

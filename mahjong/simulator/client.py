@@ -1,10 +1,10 @@
 import copy
 import random
 
-from zigong_majiang.rule.hand.agari import Agari
-from zigong_majiang.rule.hand.hand_calculator import HandCalculator
-from zigong_majiang.rule.tile.tile_convert import TilesConverter
-from zigong_majiang.simulator.game_result import GameResult
+from mahjong.rule.algo.winchecker import WinChecker
+from mahjong.rule.algo.hand_calculator import HandCalculator
+from mahjong.rule.util.tile_convert import TilesConv
+from mahjong.simulator.game_result import GameResult
 
 
 def tiles_to_string(tiles):
@@ -25,7 +25,7 @@ class Client:
         self.tiles_18 = [0] * 18
         self.last_tile = 0
         self.calculator = HandCalculator()
-        self.agari = Agari()
+        self.agari = WinChecker()
         self.id = client_id
         self.opponents = []
 
@@ -45,7 +45,7 @@ class Client:
         self.last_tile = tile
 
     def estimate_hand_value(self, tile):
-        is_win = Agari.is_win_zigong(self.tiles_18)
+        is_win = WinChecker.is_win(self.tiles_18)
         if is_win:
             results = self.calculator.estimate_hand_value_zigong(self.tiles_18, tile)
             return GameResult(self.id, True, results)
@@ -53,7 +53,7 @@ class Client:
             return GameResult(self.id)
 
     def hand_str(self):
-        tongzi, tiaozi = TilesConverter.tiles_18_to_str(self.tiles_18)
+        tongzi, tiaozi = TilesConv.tiles_18_to_str(self.tiles_18)
         r = "tongzi:{} tiaozi:{}".format(tongzi, tiaozi)
         return r
 
