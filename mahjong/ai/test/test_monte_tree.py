@@ -1,5 +1,5 @@
 from mahjong.ai.monte.game_state import GameState
-from mahjong.ai.monte.monte_tree import TreeNode, tree_search, N_SIMS
+from mahjong.ai.monte.monte_tree import TreeNode, tree_search, N_SIMS, MahjongState
 from mahjong.log.logger import Logger
 from mahjong.rule.model.tile import Tile
 from mahjong.rule.util.tile_convert import TilesConv
@@ -37,7 +37,7 @@ def test_monte():
 
     tree_node = TreeNode(net=None, game_state=game_state)
 
-    node = tree_search(tree_node, N_SIMS, server)
+    node = tree_search(tree_node, N_SIMS, server, MahjongState.Discarding)
     log.info("The result of monte tree search is :touch tile {} for given hand {}".
              format(Tile(node.discard_tile), TilesConv.tiles_18_to_str(hands[0])))
 

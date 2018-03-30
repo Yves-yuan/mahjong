@@ -247,7 +247,7 @@ switcher = {
     MahjongState.Discarding: lambda: discarding,
     MahjongState.Penging: lambda: penging,
     MahjongState.Ganging: lambda: ganging,
-    MahjongState.Zimo: lambda: zimo,
+    MahjongState.Zimo: lambda: zimoing,
     MahjongState.Fangpaoing: lambda: fangpaoing,
     MahjongState.Touching: lambda: touching,
     MahjongState.Over: lambda: touching,
@@ -286,7 +286,7 @@ def fangpaoing(root, tree, nodes, server):
     return state
 
 
-def zimo(root, tree, nodes, server):
+def zimoing(root, tree, nodes, server):
     is_win = WinChecker.is_win(tree.game_state.hands_index(tree.get_turn()))
     if is_win:
         game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(tree.get_turn()),
@@ -320,7 +320,7 @@ def touching(root, tree, nodes, server):
     return MahjongState.Over
 
 
-def tree_descend_new(tree: TreeNode, server, state: MahjongState):
+def tree_descend(tree: TreeNode, server, state: MahjongState):
     root = True
     nodes = [tree]
     while state is not MahjongState.Over:
@@ -329,82 +329,6 @@ def tree_descend_new(tree: TreeNode, server, state: MahjongState):
         tree = nodes[-1]
         if root:
             root = False
-    return nodes
-
-
-def tree_descend(tree: TreeNode, server, state: MahjongState):
-    """ Descend through the tree to a leaf """
-    """ 蒙特卡洛模拟打麻将，每一个节点代表打牌后的牌面,结束条件是有人和牌或者牌被摸完 """
-    """ 目前采取随机打牌的策略 """
-    root = True
-    tree.v += 1
-    nodes = [tree]
-    # Initialize root node
-    # 每个节点代表自己或对手打牌后的牌面
-    if tree.children is None:
-        tree.expand()
-    func = switcher.get(state)()
-    state = func(root, tree)
-    while state is not MahjongState.Over:
-        func = switcher.get(state)()
-        state = func(root, tree, nodes)
-        tree = nodes[-1]
-        # 如果已经和牌，直接退出
-        tree = nodes[-1]
-        log.info("Tree descend,it's player:{}'s turn,touched:{} ,hands:{}".format(tree.get_turn(),
-                                                                                  Tile(tree.touch_tile),
-                                                                                  tree.game_state.get_cur_hands_str()))
-        is_win = WinChecker.is_win(tree.game_state.hands_index(tree.get_turn()))
-        if is_win:
-            game_result = HandCalculator.estimate_hand_value_zigong(tree.game_state.hands_index(tree.get_turn()),
-                                                                    tree.touch_tile)
-            nodes[-1].zimo(game_result)
-            return nodes
-
-        children = list(nodes[-1].children)
-        attack_probabilitys = Attack.think(nodes[-1].game_state)
-        for index in range(0, len(children)):
-            children[index].set_attack_drop_p(attack_probabilitys[index])
-        # Pick the most urgent child
-        random.shuffle(children)  # randomize the max in case of equal urgency
-
-        urgencies = global_puct_urgency(nodes[-1].v, *puct_urgency_input(children))
-        attack_probabilitys_np = np.array([n.attack_drop_p for n in children])
-        if root:
-            dirichlet = np.random.dirichlet((0.03, 1), len(children))
-            urgencies = urgencies * 0.5 + dirichlet[:, 0] * 0.25 + attack_probabilitys_np * 0.25
-            root = False
-        urgencies = urgencies * 0.7 + attack_probabilitys_np * 0.3
-        log.debug("urgencies:{}".format(urgencies))
-        node = max(zip(children, urgencies), key=lambda t: t[1])[0]
-        nodes.append(node)
-        log.info("discard tile:{}".format(Tile(node.discard_tile)))
-        # updating visits on the way *down* represents "virtual loss", relevant for parallelization
-        node.v += 1
-
-        # 放炮判断
-        fangpao_nodes = fangpao_check(node)
-        if len(fangpao_nodes) > 0:
-            nodes.extend(fangpao_nodes)
-            return nodes
-
-        # 杠牌判断
-        gang_node = gang_check(node)
-        if gang_node is not None:
-            nodes.append(gang_node)
-            node = gang_node
-            touch_tile(server, node, nodes)
-            continue
-
-        # 碰牌判断
-        peng_node = peng_check(node, root)
-        if peng_node is not None:
-            nodes.append(peng_node)
-
-        node = nodes[-1]
-        # 如果牌墙还有牌，那么就摸牌，扩展子树
-        touch_tile(server, node, nodes)
-
     return nodes
 
 
@@ -497,7 +421,7 @@ def peng_check(node, root):
     return nodes, MahjongState.Touching
 
 
-def tree_update(nodes, disp=False):
+def tree_update(nodes):
     scores = [0] * 3
     """ Store simulation result in the tree (@nodes is the tree path) """
     for node in reversed(nodes):
@@ -518,7 +442,7 @@ def tree_update(nodes, disp=False):
             node.w += scores[node.game_state.turn]  # score is for to-play, node statistics for just-played
 
 
-def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
+def tree_search(tree, n, game_server: GameServer, state):
     """ Perform MCTS search from a given state for a given #iterations """
     """ 模特卡罗搜索最佳出牌 """
 
@@ -532,13 +456,13 @@ def tree_search(tree, n, game_server: GameServer, disp=False, debug_disp=False):
         random.shuffle(server.tiles)
 
         # 模拟对局
-        nodes = tree_descend_new(tree, server, MahjongState.Discarding)
+        nodes = tree_descend(tree, server, state)
         print_nodes(nodes)
         i += 1
         logger().info("simulation {} over,total:{} \n".format(i, n))
         last_node = nodes[-1]
         if last_node.game_result is not None:
-            tree_update(nodes, disp=debug_disp)
+            tree_update(nodes)
         else:
             continue
 
