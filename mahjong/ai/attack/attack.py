@@ -20,8 +20,8 @@ K2 = 1
 
 ves_ai = JudgeChainMaker(1)
 
-WEIGHT_FITST = 18
-WEIGHT_SECOND = 1
+WEIGHT_FITST = 1
+WEIGHT_SECOND = 0.1
 
 
 class Attack:
@@ -95,11 +95,41 @@ class Attack:
         return True
 
     @staticmethod
-    def think_fangpao(game_state: GameState, index, tile):
+    def think_fangpao(node, game_state: GameState, index, discard_tile):
         hand = game_state.hands[index]
-        hand[tile] += 1
+        hand[discard_tile] += 1
         result = WinChecker.is_win(hand)
-        hand[tile] -= 1
+        hand[discard_tile] -= 1
+        if not result:
+            return result
+        if node.children is None:
+            node.expend_fangpao(index, discard_tile)
+
+        expects = []
+        for n in node.children:
+            if n.reason == "fangpao":
+                result = n.game_result
+                score = HandCalculator.calc_score_for_results(result)
+                expects.append(score)
+            else:
+                expect = Attack.think_expectation(n.game_state, index)
+                if expect < 0:
+                    expect = 0
+                expects.append(expect)
+
+        expect_prob = np.array(Attack.expects2_probability(expects))
+
+        rps = []
+        for n in node.children:
+            sum = 0
+            for t in range(0, 18):
+                sum += Attack.rp_t1(t, index, n.game_state)
+            rps.append(sum)
+        peng_rps_probability = np.array(Attack.weights2_probability(rps))
+        final = expect_prob * 0.7 + peng_rps_probability * 0.3
+        for i in range(0, len(node.children)):
+            node.children[i].set_fangpao_probability(final[i])
+
         return result
 
     @staticmethod
@@ -171,7 +201,7 @@ class Attack:
                 if prob_dh > 1:
                     prob_dh = 1
                 expect_per_chain += prob_pair * prob_dh * cost * weight
-            expect += expect_per_chain
+            expect += (expect_per_chain / len(chain.drawHands))
         return expect
 
     @staticmethod

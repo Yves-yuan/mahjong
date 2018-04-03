@@ -5,7 +5,7 @@ from mahjong.rule.util.tile_convert import TilesConv
 
 
 class GameState:
-    def __init__(self, hands, discards, melds_3, melds_4, turn=0):
+    def __init__(self, hands, discards, melds_3, melds_4, turn=0, last_discard=-1):
         """
         表示牌局当前状态的类，记录了各个玩家的手牌，丢弃牌，碰牌，杠牌，到谁的轮
         :param hands: 长度为3 * 18的数组，每个值代表数组索引的牌的数量
@@ -19,6 +19,7 @@ class GameState:
         self.discards = discards
         self.melds_3 = melds_3
         self.melds_4 = melds_4
+        self.last_discard = last_discard
 
     def get_cur_hands(self):
         return self.hands[self.turn]
@@ -86,9 +87,10 @@ class GameState:
         self.hands[self.turn][tile] -= 1
         self.turn += 1
         self.turn %= 3
+        self.last_discard = tile
 
     def clone(self):
         game_state = GameState(hands=copy.deepcopy(self.hands), discards=copy.deepcopy(self.discards),
                                melds_3=copy.deepcopy(self.melds_3), melds_4=copy.deepcopy(self.melds_4),
-                               turn=self.turn)
+                               turn=self.turn, last_discard=self.last_discard)
         return game_state

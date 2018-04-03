@@ -33,8 +33,7 @@ class HandDivider(object):
                         hand.append(item)
 
                 hand = sorted(hand, key=lambda a: a[0])
-                if len(hand) == 5:
-                    hands.append(hand)
+                hands.append(hand)
         # small optimization, let's remove hand duplicates
         unique_hands = []
         for hand in hands:

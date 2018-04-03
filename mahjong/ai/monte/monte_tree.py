@@ -10,7 +10,6 @@ from mahjong.ai.attack.attack import Attack
 from mahjong.rule.algo.winchecker import WinChecker
 from mahjong.rule.algo.hand_calculator import HandCalculator
 from mahjong.rule.model.tile import Tile
-from mahjong.rule.util.tile_convert import TilesConv
 from mahjong.simulator.game_server import GameServer
 from mahjong.log.logger import logger
 
@@ -49,6 +48,7 @@ class TreeNode:
         self.game_result = None
         self.attack_drop_p = 0
         self.peng_probability = 0
+        self.fangpao_probability = 0
         self.v = 0
         self.w = 0
         self.pv = 0
@@ -60,13 +60,17 @@ class TreeNode:
         self.discard_tile = -1
         self.peng_tile = -1
         self.peng_index = -1
-        self.lose_index = -1
-        self.win_index = -1
+        self.fangpao_from_index = -1
+        self.fangpao_to_index = -1
         self.reason = "dogfall"
         self.pass_p = -1
+        self.pass_fangpao_index = -1
 
     def get_hands_str_index(self, index):
         return self.game_state.get_hands_str_index(index)
+
+    def get_last_discard(self):
+        return self.game_state.last_discard
 
     def get_discard_tile(self):
         return self.discard_tile
@@ -86,6 +90,7 @@ class TreeNode:
         self.game_state.hands[index][peng_tile] -= 2
         self.game_state.hands[index][discard_tile] -= 1
         self.discard_tile = discard_tile
+        self.game_state.last_discard = discard_tile
         self.game_state.discards[index].append(discard_tile)
         # 捡起上次玩家丢弃的牌，加入碰的牌
         self.game_state.discards[self.game_state.get_next_turn(-1)].pop()
@@ -98,13 +103,19 @@ class TreeNode:
         self.game_state.turn = (index + 1) % 3
 
     def fangpao(self, lose_index, win_index, result):
-        self.lose_index = lose_index
-        self.win_index = win_index
+        self.fangpao_from_index = lose_index
+        self.fangpao_to_index = win_index
         self.game_result = result
         self.reason = "fangpao"
 
+    def pass_fangpao(self, index):
+        self.pass_fangpao_index = index
+
     def set_attack_drop_p(self, p):
         self.attack_drop_p = p
+
+    def set_fangpao_probability(self, p):
+        self.fangpao_probability = p
 
     def set_peng_probability(self, p):
         self.peng_probability = p
@@ -120,6 +131,26 @@ class TreeNode:
     def discard(self, tile):
         self.game_state.discard(tile)
         self.discard_tile = tile
+
+    def expend_fangpao(self, index, fangpao_tile):
+        """扩展放炮子节点"""
+        self.children = []
+        hand_fangpao = self.game_state.hands_index(index)
+        hand_fangpao[fangpao_tile] += 1
+        result_fangpao = HandCalculator.estimate_hand_value_zigong(hand_fangpao, fangpao_tile)
+        result_node = self.clone()
+        value = UNIFORM_DISTRIBUTION[0]
+        result_node.pv = PRIOR_NET
+        result_node.pw = PRIOR_NET * value
+        result_node.fangpao(self.game_state.get_next_turn(-1), index,
+                            result_fangpao)
+        self.children.append(result_node)
+        pass_node = self.clone()
+        value = UNIFORM_DISTRIBUTION[0]
+        pass_node.pv = PRIOR_NET
+        pass_node.pw = PRIOR_NET * value
+        pass_node.pass_fangpao(index)
+        self.children.append(pass_node)
 
     def expand_peng(self, index, peng_tile):
         """扩展碰牌子节点"""
@@ -281,7 +312,7 @@ def discarding(root, tree, nodes, server):
 
 
 def fangpaoing(root, tree, nodes, server):
-    fangpao_nodes, state = fangpao_check(tree)
+    fangpao_nodes, state = fangpao_check(tree, root)
     nodes.extend(fangpao_nodes)
     return state
 
@@ -342,26 +373,35 @@ def touch_tile(server, node, nodes):
         logger().info("Player{} touch tile{}".format(child.get_turn(), Tile(tile)))
 
 
-def fangpao_check(node):
-    fangpao_result = []
+def fangpao_check(node, root):
+    nodes = []
     for index_fangpao in range(0, PLAYER_NUM - 1):
         think_fangpao_index = node.game_state.get_next_turn(index_fangpao)
-        if Attack.think_fangpao(node.game_state, think_fangpao_index, node.discard_tile):
-            hand_fangpao = node.game_state.hands_index(think_fangpao_index)
-            hand_fangpao[node.discard_tile] += 1
-            result_fangpao = HandCalculator.estimate_hand_value_zigong(hand_fangpao, node.discard_tile)
-            result_node = node.clone()
-            result_node.fangpao(node.game_state.get_next_turn(-1), think_fangpao_index,
-                                result_fangpao)
-            fangpao_result.append(result_node)
-            logger().info(
-                "fangpao===>player{} to player{} with hands{}".format(node.game_state.get_next_turn(-1),
-                                                                      think_fangpao_index,
-                                                                      TilesConv.tiles_18_to_str(hand_fangpao)))
-    if len(fangpao_result) > 0:
-        return fangpao_result, MahjongState.Over
-    else:
-        return fangpao_result, MahjongState.Ganging
+        discard = node.get_last_discard()
+        if Attack.think_fangpao(node, node.game_state, think_fangpao_index, discard):
+            random.shuffle(node.children)  # randomize the max in case of equal urgency
+            urgencies = global_puct_urgency(node.v, *puct_urgency_input(node.children))
+            fangpao_probabilitys_np = np.array([n.fangpao_probability for n in node.children])
+            if root:
+                dirichlet = np.random.dirichlet((0.03, 1), len(node.children))
+                urgencies = urgencies * 0.5 + dirichlet[:, 0] * 0.25 + fangpao_probabilitys_np * 0.25
+            else:
+                urgencies = urgencies * 0.7 + fangpao_probabilitys_np * 0.3
+            log.debug("urgencies:{}".format(urgencies))
+            child = max(zip(node.children, urgencies), key=lambda t: t[1])[0]
+            nodes.append(child)
+            hand_fangpao = child.get_hands_str_index(think_fangpao_index)
+            if child.fangpao_to_index >= 0:
+                logger().info(
+                    "fangpao===>player{} to player{} with hands{}".format(child.fangpao_from_index,
+                                                                          child.fangpao_to_index,
+                                                                          hand_fangpao))
+                return nodes, MahjongState.Over
+            else:
+                logger().info("pass_fangpao====>player{} pass_fangpao player{} with hands{}".format(
+                    think_fangpao_index, child.game_state.get_next_turn(-1)
+                    , hand_fangpao))
+    return nodes, MahjongState.Ganging
 
 
 def gang_check(node):
@@ -391,13 +431,9 @@ def peng_check(node, root):
     """
     nodes = []
 
-    if node.get_discard_tile() < 0:
-        logger().error("The node is not a discard node when checking peng.")
-        return nodes
-
     for index in range(0, PLAYER_NUM - 1):
         think_peng_index = node.game_state.get_next_turn(index)
-        if not Attack.think_peng(node, node.game_state, think_peng_index, node.get_discard_tile()):
+        if not Attack.think_peng(node, node.game_state, think_peng_index, node.get_last_discard()):
             continue
         random.shuffle(node.children)  # randomize the max in case of equal urgency
         urgencies = global_puct_urgency(node.v, *puct_urgency_input(node.children))
@@ -409,8 +445,9 @@ def peng_check(node, root):
         log.debug("urgencies:{}".format(urgencies))
         child = max(zip(node.children, urgencies), key=lambda t: t[1])[0]
         if child.peng_tile > 0:
-            log.info("Player:{} peng tile:{} hands{}".format(child.peng_index, Tile(child.peng_tile),
-                                                             child.get_hands_str_index(child.peng_index)))
+            log.info("Player:{} peng tile:{} drop{} hands{}".format(child.peng_index, Tile(child.peng_tile),
+                                                                    Tile(child.discard_tile),
+                                                                    child.get_hands_str_index(child.peng_index)))
             child.v += 1
             nodes.append(child)
             return nodes, MahjongState.Fangpaoing
@@ -433,8 +470,8 @@ def tree_update(nodes):
                 for i in range(1, const.PLAYER_NUM):
                     scores[(turn + i) % 3] -= score
             elif node.reason == "fangpao":
-                lose_turn = node.lose_index
-                win_turn = node.win_index
+                lose_turn = node.fangpao_from_index
+                win_turn = node.fangpao_to_index
                 score = HandCalculator.calc_score_for_results(node.game_result)
                 scores[win_turn] += score
                 scores[lose_turn] -= score
@@ -457,6 +494,7 @@ def tree_search(tree, n, game_server: GameServer, state):
 
         # 模拟对局
         nodes = tree_descend(tree, server, state)
+        logger().info("Start scan nodes...")
         print_nodes(nodes)
         i += 1
         logger().info("simulation {} over,total:{} \n".format(i, n))
@@ -488,4 +526,4 @@ def print_nodes(nodes):
             if node.reason == "zimo":
                 logger().info("player{} zimo. ".format(node.game_state.turn))
             elif node.reason == "fangpao":
-                logger().info("player{} fangpao to player{}".format(node.lose_index, node.win_index))
+                logger().info("player{} fangpao to player{}".format(node.fangpao_from_index, node.fangpao_to_index))
