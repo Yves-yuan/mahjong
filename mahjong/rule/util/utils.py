@@ -1,4 +1,6 @@
 import logging
+
+
 def is_chi(item):
     """
     :param item: array of tile 34 indices
@@ -54,6 +56,6 @@ def check_ready_to_touch(tiles_18):
     for num in tiles_18:
         total += num
     if total % 3 != 1:
-        print("error,手牌数目不对:", total)
+        logging.getLogger("mahjong").error("error,手牌数目不对:{}".format(total))
         return False
     return True
