@@ -22,7 +22,7 @@ class HandCalculator(object):
         return draw_hands
 
     @staticmethod
-    def estimate_hand_value_zigong(tiles_18, win_tile):
+    def estimate_hand_value_zigong(tiles_18, win_tile, meld3, meld4):
         """
         it's a specific version of China SiChuan Zigong majhong.
         :param tiles_18:
@@ -40,20 +40,20 @@ class HandCalculator(object):
         calculated_hands = []
         for hand in hand_options:
             # win_groups = self._find_win_groups(win_tile, hand, [])
-            cost = HandCalculator.calculate_scores_zigong(hand, win_tile, tiles_18)
+            cost = HandCalculator.calculate_scores_zigong(hand, win_tile, tiles_18, meld3, meld4)
             calculated_hand = HandCost(hand, cost)
             calculated_hands.append(calculated_hand)
         return calculated_hands
 
     @staticmethod
-    def estimate_max_score(tiles_18, win_tile):
+    def estimate_max_score(tiles_18, win_tile, meld3, meld4):
         """
         计算最大胡牌得分
         :param tiles_18:必须是胡牌的手牌，例如14张
         :param win_tile:
         :return:
         """
-        ch = HandCalculator.estimate_hand_value_zigong(tiles_18,win_tile)
+        ch = HandCalculator.estimate_hand_value_zigong(tiles_18, win_tile, meld3, meld4)
         max_cost = 0
         for result in ch:
             if result.cost > max_cost:
@@ -61,23 +61,23 @@ class HandCalculator(object):
         return max_cost
 
     @staticmethod
-    def calculate_scores_zigong(hand, wintile, tiles_18):
+    def calculate_scores_zigong(hand, wintile, tiles_18, meld3, meld4):
         # find gang
-        gang = 0
+        gang = len(meld4)
         for tile in tiles_18:
             if tile == 4:
                 gang += 1
-
+            if tile in meld3:
+                gang += 1
         # find qingyise
         qingyise = True
         last = -1
         for group in hand:
             if last < 0:
-                last = group[0]
+                last = group[0] // 9
             if last != group[0] // 9:
                 qingyise = False
                 break
-            last = group[0] / 9
 
         # calculate longqidui
         duiziNum = 0

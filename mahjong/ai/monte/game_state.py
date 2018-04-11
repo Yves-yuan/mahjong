@@ -79,9 +79,6 @@ class GameState:
         if total > 14:
             print("wrong")
 
-    def score(self, index):
-        return HandCalculator.estimate_hand_value_zigong(self.hands[index], self.hands[index][0])
-
     def discard(self, tile):
         self.discards[self.turn].append(tile)
         self.hands[self.turn][tile] -= 1

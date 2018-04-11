@@ -37,8 +37,8 @@ def test_monte():
 
     tree_node = TreeNode(net=None, game_state=game_state)
 
-    node = tree_search(tree_node, N_SIMS, server, MahjongState.Discarding)
-    log.info("The result of monte tree search is :touch tile {} for given hand {}".
+    node = tree_search(tree_node, N_SIMS, server, MahjongState.AfterTouching)
+    log.info("The result of monte tree search is :discard tile {} for given hand {}".
              format(Tile(node.discard_tile), TilesConv.tiles_18_to_str(hands[0])))
 
 

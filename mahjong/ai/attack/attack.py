@@ -17,15 +17,22 @@ S2 = 6
 K0 = 2
 K1 = 1
 K2 = 1
+D0 = 3
 
 ves_ai = JudgeChainMaker(1)
 
 WEIGHT_FITST = 1
 WEIGHT_SECOND = 0.1
 WEIGHT_ZIMO = 1
-WEIGHT_PASS_ZIMO = 0.6
+WEIGHT_TOUCH_GANG = 0.7
+WEIGHT_MELD3_GANG = 0.7
+WEIGHT_DISCARD = 0.5
 WEIGHT_FANGPAO = 1
 WEIGHT_PASS_FANGPAO = 0.6
+WEIGHT_PENG = 0.5
+WEIGHT_BEAT = 0.4
+WEIGHT_GANG = 0.6
+
 
 class Attack:
     def __init__(self, s0=S0, s1=S1, s2=S2, k0=K0, k1=K1, k2=K2):
@@ -65,91 +72,25 @@ class Attack:
         return None
 
     @staticmethod
-    def think_gang(node, game_state: GameState, index, tile):
-        num = game_state.get_tile_num_of_hand(tile, index)
-        if num < 3:
-            return False
-        tree = node
-
-    @staticmethod
-    def think_peng(node, game_state: GameState, index, tile):
-        num = game_state.get_tile_num_of_hand(tile, index)
-        if num < 2:
-            return False
-        tree = node
-        if tree.children is None:
-            tree.expand_peng(index, tile)
-
-        # 计算邻近度概率
-        rps = []
-        for node in tree.children:
-            sum = 0
-            for t in range(0, 18):
-                sum += Attack.rp_t1(t, index, node.game_state)
-            rps.append(sum)
-        peng_rps_probability = np.array(Attack.weights2_probability(rps))
-
-        # 计算期望值概率
-        expects = []
-        for node in tree.children:
-            expect = Attack.think_expectation(node.game_state, index)
-            expects.append(expect)
-
-        expect_prob = np.array(Attack.expects2_probability(expects))
-
-        # 设置节点综合打牌概率
-        final = expect_prob * 0.6 + peng_rps_probability * 0.4
-        for i in range(0, len(tree.children)):
-            tree.children[i].set_peng_probability(final[i])
-
-        return True
-
-    @staticmethod
-    def think_zimo(node):
-        expects = []
-        for n in node.children:
-            if n.reason == "zimo":
-                result = n.game_result
-                score = result * WEIGHT_ZIMO
-                expects.append(score)
-            else:
-                expect = Attack.think_expectation(n.game_state, node.get_turn()) * WEIGHT_PASS_ZIMO
-                if expect < 0:
-                    expect = 0
-                expects.append(expect)
-
-        expect_prob = np.array(Attack.expects2_probability(expects))
-
-        rps = []
-        for n in node.children:
-            sum = 0
-            for t in range(0, 18):
-                sum += Attack.rp_t1(t, node.get_turn(), n.game_state)
-            rps.append(sum)
-        peng_rps_probability = np.array(Attack.weights2_probability(rps))
-        final = expect_prob * 0.7 + peng_rps_probability * 0.3
-        for i in range(0, len(node.children)):
-            node.children[i].set_zimo_probability(final[i])
-
-    @staticmethod
-    def think_fangpao(node, game_state: GameState, index, discard_tile):
-        hand = game_state.hands[index]
-        hand[discard_tile] += 1
-        result = WinChecker.is_win(hand)
-        hand[discard_tile] -= 1
-        if not result:
-            return result
-        if node.children is None:
-            node.expend_fangpao(index, discard_tile)
-
+    def think_beat(node, index):
         expects = []
         for n in node.children:
             if n.reason == "fangpao":
                 result = n.game_result
                 score = result * WEIGHT_FANGPAO
                 expects.append(score)
+            elif n.gang_index >= 0:
+                expect = Attack.think_expectation(n.game_state, index) * WEIGHT_GANG
+                if expect < 0:
+                    expect = 0
+                expects.append(expect)
+            elif n.peng_index >= 0:
+                expect = Attack.think_expectation(n.game_state, index) * WEIGHT_PENG
+                if expect < 0:
+                    expect = 0
+                expects.append(expect)
             else:
-                expect = Attack.think_expectation(n.game_state, index) * WEIGHT_PASS_FANGPAO
+                expect = Attack.think_expectation(n.game_state, index) * WEIGHT_BEAT
                 if expect < 0:
                     expect = 0
                 expects.append(expect)
@@ -161,39 +102,65 @@ class Attack:
             sum = 0
             for t in range(0, 18):
                 sum += Attack.rp_t1(t, index, n.game_state)
-            rps.append(sum)
+            if n.reason == "fangpao":
+                rps.append(sum * WEIGHT_FANGPAO)
+            elif n.gang_index >= 0:
+                rps.append(sum * WEIGHT_GANG)
+            elif n.peng_index >= 0:
+                rps.append(sum * WEIGHT_PENG)
+            else:
+                rps.append(sum * WEIGHT_BEAT)
+        beat_rps_probability = np.array(Attack.weights2_probability(rps))
+        final = expect_prob * 0.7 + beat_rps_probability * 0.3
+        for i in range(0, len(node.children)):
+            node.children[i].set_beat_probability(final[i])
+
+    @staticmethod
+    def think_after_touch(node):
+        expects = []
+        rps = []
+        for n in node.children:
+            if n.reason == "zimo":
+                result = n.game_result
+                score = result * WEIGHT_ZIMO
+                expects.append(score)
+                sum_rp = 0
+                for t in range(0, 18):
+                    sum_rp += Attack.rp_t1(t, node.get_turn(), n.game_state)
+                rps.append(sum_rp * WEIGHT_ZIMO)
+            elif n.touch_gang_index >= 0:
+                expect = Attack.think_expectation(n.game_state, node.get_turn()) * WEIGHT_TOUCH_GANG
+                if expect < 0:
+                    expect = 0
+                expects.append(expect)
+                sum_rp = 0
+                for t in range(0, 18):
+                    sum_rp += Attack.rp_t1(t, node.get_turn(), n.game_state)
+                rps.append(sum_rp * WEIGHT_TOUCH_GANG)
+            elif n.melds3_gang_index >= 0:
+                expect = Attack.think_expectation(n.game_state, node.get_turn()) * WEIGHT_MELD3_GANG
+                if expect < 0:
+                    expect = 0
+                expects.append(expect)
+                sum_rp = 0
+                for t in range(0, 18):
+                    sum_rp += Attack.rp_t1(t, node.get_turn(), n.game_state)
+                rps.append(sum_rp * WEIGHT_MELD3_GANG)
+            else:
+                expect = Attack.think_expectation(n.game_state, node.get_turn()) * WEIGHT_DISCARD
+                if expect < 0:
+                    expect = 0
+                expects.append(expect)
+                sum_rp = 0
+                for t in range(0, 18):
+                    sum_rp += Attack.rp_t1(t, node.get_turn(), n.game_state)
+                rps.append(sum_rp * WEIGHT_DISCARD)
+
+        expect_prob = np.array(Attack.expects2_probability(expects))
         peng_rps_probability = np.array(Attack.weights2_probability(rps))
         final = expect_prob * 0.7 + peng_rps_probability * 0.3
         for i in range(0, len(node.children)):
-            node.children[i].set_fangpao_probability(final[i])
-
-        return result
-
-    @staticmethod
-    def think(game_state: GameState):
-        """
-        计算打牌的概率，返回数组，数组中
-        :param game_state:
-        :return:出牌概率归一化后的数组
-        """
-        log = logging.getLogger("mahjong")
-        expects = []
-        for t in range(0, 18):
-            expect = Attack.think_expectation_forplay(t, game_state)
-            if expect >= 0:
-                expects.append(expect)
-        expect_prob = np.array(Attack.expects2_probability(expects))
-        log.debug("The expectations{}".format(expect_prob))
-        tile_weights = []
-        for t in range(0, 18):
-            p_t = Attack.rp_t1(t, game_state.turn, game_state)
-            if p_t > 0:
-                tile_weights.append(p_t)
-        probability = np.array(Attack.weights2_probability(tile_weights))
-        log.debug("The concentrations{}".format(probability))
-        final = expect_prob * 0.6 + probability * 0.4
-        log.debug("Final{}".format(final))
-        return final
+            node.children[i].set_after_touch_probability(final[i])
 
     @staticmethod
     def think_expectation(game_state: GameState, index):
@@ -204,7 +171,7 @@ class Attack:
         :return:
         """
         check = check_ready_to_touch(game_state.hands[index])
-        if check == False:
+        if not check:
             logger().error("hand length is not ready to touch")
             return -1
         hand = copy.deepcopy(game_state.hands[index])
@@ -231,7 +198,9 @@ class Attack:
             for dh in chain.drawHands:
                 # 计算一个链种每种胡牌的期望
                 chain.hand[dh] += 1
-                cost = HandCalculator.estimate_max_score(chain.hand, dh)
+                meld3 = game_state.melds_3[index]
+                meld4 = game_state.melds_4[index]
+                cost = HandCalculator.estimate_max_score(chain.hand, dh, meld3, meld4)
                 chain.hand[dh] -= 1
                 remain_dh = game_state.get_remain(dh, index)
                 prob_dh = remain_dh / constant.PLAYER_NUM
@@ -239,28 +208,6 @@ class Attack:
                     prob_dh = 1
                 expect_per_chain += prob_pair * prob_dh * cost * weight
             expect += (expect_per_chain / len(chain.drawHands))
-        return expect
-
-    @staticmethod
-    def think_expectation_forplay(tile, game_state: GameState):
-        """
-        在需要打牌的时候计算打牌期望，手牌是14张
-        :param tile:
-        :param game_state:
-        :return:
-        """
-        check = check_ready_to_win(game_state.hands[game_state.turn])
-        if check == False:
-            logger().error("Error:hand number is not right.")
-            return -1
-        if game_state.hands[game_state.turn][tile] < 0:
-            print("error:tile num < 0")
-            return -1
-        if game_state.hands[game_state.turn][tile] == 0:
-            return -1
-        game_state.hands[game_state.turn][tile] -= 1
-        expect = Attack.think_expectation(game_state, game_state.turn)
-        game_state.hands[game_state.turn][tile] += 1
         return expect
 
     @staticmethod
@@ -281,9 +228,22 @@ class Attack:
     @staticmethod
     def weights2_probability(tile_weights_in):
         """
-        通过邻近牌权重数组计算出牌概率，邻近权重越大表示越应该保留,出牌概率就越小，邻近权重越小出牌的概率越大
+        邻近权重越大概率越大
         :param tile_weights_in:输入邻近权重
-        :return: 出牌概率，归一化
+        :return: 概率，归一化
+        """
+        tile_weights = copy.deepcopy(tile_weights_in)
+        sum1 = sum(tile_weights)
+        for index in range(0, len(tile_weights)):
+            tile_weights[index] = tile_weights[index] / sum1
+        return tile_weights
+
+    @staticmethod
+    def reverse_weights2_probability(tile_weights_in):
+        """
+        邻近权重越大概率越小，邻近权重越小概率越大
+        :param tile_weights_in:输入邻近权重
+        :return: 概率，归一化
         """
         tile_weights = copy.deepcopy(tile_weights_in)
         sum1 = sum(tile_weights)
@@ -320,6 +280,6 @@ class Attack:
                 sn_2 += s.hands[index][t2]
                 kn_2 += Attack.tile_remain_num(t2, game_state, index)
             p_t = sn_0 * S0 + (sn_1 * S1) + (sn_2 * S2) + kn_0 * K0 + (kn_1 * K1) + (
-                    kn_2 * K2)
+                    kn_2 * K2) + sn_0 * sn_0 * sn_0
         p_t /= TilesConv.tiles18_count(s.hands[index])
         return p_t
